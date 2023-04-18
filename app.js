@@ -2,7 +2,7 @@ var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 
-var logger = require('morgan');
+// var logger = require('morgan');
 // const nunjucks = require('nunjucks');
 const axios = require('axios');
 require('dotenv').config();
@@ -77,27 +77,31 @@ const printTicker = async () => {
     //   const response = await mysqlDB.query(queryString);
     // }
 
+    let lastTime = new Date().getTime();
     const interval = setInterval(async () => {
-      const startTime = new Date();
-      const ticker = await getTicker(market.allMarket);
+      const nowTime = new Date().getTime();
+      const compareTime = (Math.floor(lastTime / 10000) + 1) * 10000;
+      if (compareTime < nowTime) {
+        lastTime = nowTime;
+        const startTime = new Date();
+        const ticker = await getTicker(market.allMarket);
 
-      let queryString = 'INSERT INTO coin(market, price, date) VALUES';
-      for (let i = 0; i < ticker.length; i++) {
-        const { market, trade_price } = ticker[i];
-        const repMarket = market.replace(/-/g, '_');
+        let queryString = 'INSERT INTO coin(market, price, date) VALUES';
+        for (let i = 0; i < ticker.length; i++) {
+          const { market, trade_price } = ticker[i];
+          const repMarket = market.replace(/-/g, '_');
 
-        queryString += i ?
-          `, ('${repMarket}', '${trade_price}', NOW())` :
-          `('${repMarket}', '${trade_price}', NOW())`;
+          queryString += i ?
+            `, ('${repMarket}', '${trade_price}', NOW())` :
+            `('${repMarket}', '${trade_price}', NOW())`;
+        }
+        queryString += ';';
+        const response = await mysqlDB.query(queryString);
+
+        const Time = new Date() - startTime;
+        console.log(Time);
       }
-      queryString += ';';
-      const response = await mysqlDB.query(queryString);
-
-      const Time = new Date() - startTime;
-      console.log(Time);
-    }, 1000)
-
-
+    }, 100)
 
   } catch (error) {
     console.log(error);
@@ -109,6 +113,18 @@ const printTicker = async () => {
 }
 printTicker();
 
+// let lastTime = new Date();;
+// setInterval(() => {
+//   const nowTime = new Date();
+//   const nowSec = nowTime.getSeconds();
+//   const nowMilSec = nowTime.getMilliseconds();
+
+//   const afterTime = nowTime.setSeconds(nowSec + 10)
+
+//   const elapsed = nowTime - lastTime
+//   lastTime = nowTime;
+//   console.log(Math.floor(nowTime.getTime() / 10000), Math.floor(afterTime / 10000));
+// }, 400)
 
 let mysqlDB;
 
@@ -131,7 +147,7 @@ app.use(async (req, res, next) => {
 
 
 
-app.use(logger('dev'));
+// app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // app.use(cookieParser());
@@ -158,12 +174,12 @@ app.use('/', indexRouter);
 
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};

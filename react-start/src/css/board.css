@@ -1,0 +1,185 @@
+/* blog, board 리스트 글자 크기 */
+.boardListTitle {
+  font-size: 12px;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.boardTable {
+  /* 크기고정 */
+  table-layout: fixed;
+  /* 내부 값이 줄바꿈을 하지 않음 */
+  white-space: nowrap; 
+}
+
+.board_title {
+  width: 500px;
+  padding-left: 4px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.board_view {
+  color: steelblue;
+  text-align: center;
+}
+
+.board_author {
+  width: 80px;
+  text-align: center;
+}
+
+.board_good {
+  width: 50px;
+  text-align: center;
+}
+
+.board_created {
+  width: 100px;
+  text-align: center;
+}
+
+
+
+
+.board_post_title {
+  flex: 1;
+  /* width: 100%;; */
+  /* align-items: center; */
+  text-align: center;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+.board_post_title input {
+  /* display: inline-block; */
+  /* box-sizing: border-box; */
+  width: 90%;
+  /* padding-left: 5px; */
+  padding-top: 5px;
+  padding-bottom: 5px;
+  background-color: transparent;
+  border: 0;
+  color: white;
+  font-size: 20px;
+  /* margin: 0 auto; */
+}
+
+.board_post_title input:focus {
+  outline: none;
+}
+
+.board_post_content {
+  width: 90%;
+  margin: 0 auto;
+  align-items: center;
+  text-align: center;
+
+  padding: 5px;
+}
+
+.ck-editor__editable:not(.ck-editor__nested-editable) {
+  min-height: 350px;
+  max-height: 350px;
+
+}
+
+
+
+.board_post_complete {
+  width: 90%;
+  margin: 0 auto;
+  align-items: center;
+  text-align: right;
+
+  padding: 5px;
+}
+
+.board_post_complete button {
+  color: white;
+  border: 0px solid ;
+  border-radius: 30px;
+  cursor : pointer;
+  font-size: 15px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 20px;
+  padding-right: 20px;
+  background-color: steelblue;
+}
+
+
+
+.table {
+  /* 크기고정 */
+  table-layout: fixed;
+  /* 내부 값이 줄바꿈을 하지 않음 */
+  white-space: nowrap; 
+  font-size: 12px;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.table thead{
+  font-size: 14px;
+  color: lightseagreen;
+  /* 글자 사이 간격 */
+  letter-spacing: 1px;
+}
+
+.table tbody{
+  font-size: 12px;
+  /* 글자 사이 간격 */
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.colorRed {
+  color: deeppink;
+}
+
+.colorBlue {
+  color: dodgerblue;
+}
+
+.alignCenter {
+  margin: 0 auto;
+  text-align: center;
+}
+
+.alignRight {
+  /* margin: 0 ; */
+  text-align: right;
+}
+
+.width25 {
+  width: 25px;
+}
+
+.width40 {
+  width: 40px;
+}
+
+.width50 {
+  width: 50px;
+}
+
+.width75 {
+  width: 70px;
+}
+
+.width100 {
+  width: 100px;
+}
+
+.width150 {
+  width: 150px;
+}
+
+.width175 {
+  width: 175px;
+}
+
+.width200 {
+  width: 200px;
+}

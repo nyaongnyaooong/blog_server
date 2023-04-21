@@ -1,0 +1,100 @@
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    /* z-index: -1; */
+    opacity: 0;
+    transform: translate(-50%, 80px);
+  }
+  to {
+    /* z-index: 12; */
+    opacity: 1;
+    transform: translate(-50%, 0px);
+  }
+}
+
+@keyframes fadeOutDown {
+  0% {
+    z-index: 12;
+    opacity: 1;
+    transform: translate(-50%, 0px);
+  }
+  to {
+    z-index: -1;  
+    opacity: 0;
+    transform: translate(-50%, 80px);
+  }
+}
+
+@keyframes fadeInDark {
+  0% {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+@keyframes fadeOutDark {
+  0% {
+    z-index: 11;
+    opacity: 0.5;
+  }
+  to {
+    z-index: -1;
+    opacity: 0;
+  }
+}
+
+
+.ani_fadeIn {
+  /* position: absolute; */
+  /* z-index: 12; */
+  animation: fadeIn 400ms;
+}
+
+.ani_fadeOut {
+  /* position: absolute; */
+  /* z-index: 12; */
+  animation: fadeOut 1s;
+}
+
+.ani_fadeInUp {
+  /* position: absolute; */
+  z-index: 12;
+  animation: fadeInUp 300ms forwards;
+}
+
+.ani_fadeOutDown {
+  /* position: absolute; */
+  z-index: -1;
+  animation: fadeOutDown 300ms;
+}
+
+.ani_fadeInDark {
+  /* position: absolute; */
+  z-index: 11;
+  animation: fadeInDark 300ms;
+}
+
+.ani_fadeOutDark {
+  /* position: absolute; */
+  z-index: -1;
+  animation: fadeOutDark 300ms;
+}

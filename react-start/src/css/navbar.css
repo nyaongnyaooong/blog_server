@@ -1,0 +1,151 @@
+a:link {
+  color: white;
+  text-decoration: none;
+}
+a:visited {
+  color: white;
+  text-decoration: none;
+}
+a:hover {
+  color: steelblue;
+  text-decoration: none;
+}
+a:active {
+  /* color: green; */
+  text-decoration: none;
+}
+
+button {
+  user-select : none;
+}
+
+
+.navbar {
+  width: 100%;
+  /* 네비게이션 바 높이 */
+  height: 60px;
+  background-color: #343a40;
+  display: flex;
+  align-items: center;
+}
+
+.navbar button {
+  border: 0px;
+  padding: 0px;
+  background-color: transparent;
+  /* letter-spacing: 2px; */
+  font-size: 15px;
+}
+
+.nav_btn_active {
+  color: steelblue;
+}
+
+.nav_btn_deactive {
+  color: white;
+}
+
+.nav_l_section {
+  margin-left: 10px;
+  height: 30px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  cursor : pointer;
+}
+
+.nav_l_section button {
+  /* font-weight: 700; */
+  font-size: 17px;
+  margin-left: 7px;
+  cursor : pointer;
+  /* letter-spacing: 1px; */
+}
+
+
+.divMark {
+  width: 30px;
+  height: 30px; 
+  border-radius: 70%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  float: left;
+}
+
+.divMark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+
+
+
+
+.nav_m_section {
+  width: 100%;
+  height: 30px;
+  flex: 3;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.nav_m_section a {
+  margin-left: 40px;
+}
+
+
+.nav_m_section ul {
+  margin-right: 30px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  text-align: right;
+
+}
+
+.nav_m_section li {
+  float: left;
+  margin-left: 10px;
+  font-weight: 700;
+}
+
+.nav_m_section button:hover {
+  cursor: pointer;
+  color: steelblue;
+  text-decoration: none;
+}
+
+
+
+.nav_r_section {
+  margin-right: 15px;
+  height: 30px;
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.nav_r_section button {
+  margin-left: 30px;
+  /* font-weight: 700; */
+  color: white;
+  display: table-cell;
+  float: right;
+  cursor: pointer;
+  /* padding-left: 10px; */
+}
+
+.nav_r_section button:hover {
+  cursor: pointer;
+  color: steelblue;
+  text-decoration: none;
+}
+
+.nav_r_section span {
+  color: blueviolet;
+  font-size: 15px;
+}

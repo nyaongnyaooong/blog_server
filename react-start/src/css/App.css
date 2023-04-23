@@ -316,3 +316,50 @@ ul {
   /* padding: 30px; */
   /* height: 100px; */
 }
+
+
+
+
+.app {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+
+/* 이하 코인 css */
+.trade {
+  display: flex;
+  width: 600px;
+  flex-direction: row;
+  /* 가로정렬 */
+  justify-content: center;
+  /* 세로정렬 */
+  align-items: center;
+}
+
+.buy {
+  display: flex;
+  flex: 15;
+  /* margin: 0 auto; */
+  flex-direction: row;
+  /* 가로정렬 */
+  justify-content: center;
+  /* 세로정렬 */
+  align-items: center;
+}
+
+.spare {
+  width: 20px;
+}
+
+.sell {
+  display: flex;
+  flex: 15;
+  /* margin: 0 auto; */
+  flex-direction: row;
+  /* 가로정렬 */
+  justify-content: center;
+  /* 세로정렬 */
+  align-items: center;
+}

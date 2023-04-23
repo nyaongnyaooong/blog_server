@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-// import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const FormGroup = (props) => {
@@ -57,12 +57,12 @@ const LogInForm = (props) => {
     setInputPW(e.target.value);
   }
 
-  // const location = useLocation();
+  const location = useLocation();
   let [nowURL, setNowURL] = useState('');
 
-  // useEffect(() => {
-  //   setNowURL(location.pathname);
-  // }, [location.pathname]);
+  useEffect(() => {
+    setNowURL(location.pathname);
+  }, [location.pathname]);
 
   const reqLogIn = async (e) => {
     e.preventDefault();

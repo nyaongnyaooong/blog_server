@@ -16,4 +16,17 @@ const Loading = (props) => {
     )
 }
 
-export default Loading;
+const Loading2 = () => {
+  return (
+    <div className='loading'>
+      <div className='loader loader-6'>
+        <div className='loader-inner'></div>
+      </div>
+      <div>
+        <span>Loading..</span>
+      </div>
+    </div>
+  )
+}
+
+export { Loading, Loading2 };

@@ -349,6 +349,16 @@ app.get('/coindata', async (req, res) => {
   res.send(resData);
 });
 
+app.get('/coindata/:market', async (req, res) => {
+  console.log(req.body)
+  console.log(req.params)
+  const resData = {
+    market: gMarket,
+    ticker: gTicker
+  }
+  res.send(resData);
+});
+
 
 
 

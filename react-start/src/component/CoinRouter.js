@@ -127,121 +127,140 @@ const MainPage = (props) => {
 const DetailPage = (props) => {
   // coin: 어떤 코인의 디테일을 표시할 것인가?
   // stateFuncs: 뒤로 돌아가기용
-  const { coin, stateFuncs } = props;
+  const { coin, marketName, stateFuncs } = props;
   const { setCoinPage } = stateFuncs;
 
-  // 차트 컴포넌트
-  const Chart = () => {
-    // const [candle, setCandle] = useState(null)
-    const [series, setSeries] = useState(null);
-    const [options, setOptions] = useState(null);
+  const [series, setSeries] = useState(null);
+  const [options, setOptions] = useState(null);
+  const [ticker, setTicker] = useState(null)
 
-    useEffect(() => {
-      const fetchData = async (count) => {
-        try {
-          let response = await axios.request({
-            method: 'get',
-            url: 'https://api.upbit.com/v1/candles/minutes/1?market=' + coin + '&count=' + count
-          });
-          const candle = response.data;
-          const dataArray = [];
+  const Title = (props) => {
+    const { data } = props;
 
-          for (let i = candle.length - 1; i >= 0; i--) {
-            const elm = candle[i];
-            const dataObject = {
-              x: Date.parse(elm.candle_date_time_kst + 'Z'),
-              y: [
-                elm.opening_price,
-                elm.high_price,
-                elm.low_price,
-                elm.trade_price
-              ]
-            }
-            dataArray.push(dataObject);
-          }
+    return (
+      <div className='div-title'>
+        <span>
+          {'[' + coin + '] ' + marketName + ' ' + data.trade_price.toLocaleString('ko-KR')}
+        </span>
+      </div>
+    );
+  }
 
-          response = await axios.request({
-            method: 'get',
-            url: 'https://api.upbit.com/v1/ticker?markets=' + coin
-          });
-          const ticker = response.data;
-          const tickerObject = {
-            x: Date.parse(ticker.candle_date_time_kst + 'Z'),
+  useEffect(() => {
+    const fetchData = async (count) => {
+      try {
+        // 캔들데이터
+        let response = await axios.request({
+          method: 'get',
+          url: 'https://api.upbit.com/v1/candles/minutes/1?market=' + coin + '&count=' + count
+        });
+        const candle = response.data;
+        const dataArray = [];
+
+        for (let i = candle.length - 1; i >= 0; i--) {
+          const elm = candle[i];
+          const dataObject = {
+            x: Date.parse(elm.candle_date_time_kst + 'Z'),
             y: [
-              ticker.opening_price,
-              ticker.high_price,
-              ticker.low_price,
-              ticker.trade_price
+              elm.opening_price,
+              elm.high_price,
+              elm.low_price,
+              elm.trade_price
             ]
           }
-          dataArray.push(tickerObject);
-          const _series = [{ data: dataArray }];
-          setSeries(_series);
+          dataArray.push(dataObject);
+        }
 
-          const options = {
-            theme: {
-              mode: "dark",
+        // ticker 데이터
+        response = await axios.request({
+          method: 'get',
+          url: 'https://api.upbit.com/v1/ticker?markets=' + coin
+        });
+        const [tickerData] = response.data;
+        setTicker(tickerData)
+
+        const tickerObject = {
+          x: Date.parse(tickerData.candle_date_time_kst + 'Z'),
+          y: [
+            tickerData.opening_price,
+            tickerData.high_price,
+            tickerData.low_price,
+            tickerData.trade_price
+          ],
+        }
+        dataArray.push(tickerObject);
+        const _series = [{ data: dataArray }];
+        setSeries(_series);
+
+        // 차트 옵션
+        const options = {
+          theme: {
+            mode: "dark",
+          },
+          chart: {
+            type: 'candlestick',
+            animations: {
+              enabled: false,
+              easing: 'linear',
+              speed: 1300,
             },
-            chart: {
-              type: 'candlestick',
-              animations: {
-                enabled: false,
-                easing: 'linear',
-                speed: 1300,
-              },
-              height: 350
-            },
-            title: {
-              text: 'CandleStick Chart',
-              align: 'left'
-            },
-            xaxis: {
-              type: 'datetime',
-            },
-            yaxis: {
-              tooltip: {
-                enabled: true
-              }
-            },
-            plotOptions: {
-              candlestick: {
-                colors: {
-                  upward: '#C84A31',
-                  downward: '#1261C4'
-                }
+            height: 350
+          },
+          title: {
+            align: 'left'
+          },
+          xaxis: {
+            type: 'datetime',
+          },
+          yaxis: {
+            tooltip: {
+              enabled: true
+            }
+          },
+          plotOptions: {
+            candlestick: {
+              colors: {
+                upward: '#C84A31',
+                downward: '#1261C4'
               }
             }
           }
-          setOptions(options);
-        } catch (error) {
-          console.log(error);
         }
+        setOptions(options);
+      } catch (error) {
+        console.log(error);
       }
+    }
 
-      setInterval(async () => {
-        await fetchData(49);
-      }, 1500)
-    }, []);
+    setInterval(async () => {
+      await fetchData(49);
+    }, 1500)
 
-    return series && options ? (
+  }, [coin]);
+
+
+  return series && options && ticker ? (
+    <div className='app'>
+      <div className='coin-title'>
+        <div className='text-area'>
+          <Title data={ticker}></Title>
+        </div>
+        <div className='button-area'>
+          <div>
+          <button onClick={() => { setCoinPage('main') }}>업데이트 일시정지</button>
+          <button onClick={() => { setCoinPage('main') }}>메인으로</button>
+          </div>
+
+        </div>
+      </div>
+
+
       <div id="chart">
         <ReactApexChart options={options} series={series} type="candlestick" height={400} width={600} />
       </div>
-    ) : <div></div>;
-
-  }
-
-  return (
-    <div className='app'>
-      <div>
-        <button onClick={() => { setCoinPage('main') }}>메인으로</button>
-      </div>
-      {/* <Result data={{ candle, ticker }} coin={coin} /> */}
-      <Chart></Chart>
       <div className='trade'>
         <div className='buy'>
           <form>
-
             <div>
               <button>구매하기</button>
             </div>
@@ -259,9 +278,9 @@ const DetailPage = (props) => {
       </div>
 
     </div>
+  ) : (
+    <Loading2 />
   )
-  // <Loading2 />
-
 };
 
 

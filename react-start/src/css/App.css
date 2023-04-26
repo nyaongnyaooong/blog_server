@@ -328,6 +328,25 @@ ul {
 
 
 /* 이하 코인 css */
+
+.coin-title {
+  display: flex;
+  flex-direction: column;
+  width: 600px;
+}
+
+.coin-title .text-area {
+  display: flex;
+  width: 100%;
+  font-size: 20px;
+}
+
+.button-area {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
 .trade {
   display: flex;
   width: 600px;

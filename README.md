@@ -42,10 +42,10 @@
 ```
 
 
-## 🏷️ 환경변수
-
-
-
+## 🏷️ ERD
+```bash
+  blob:https://www.erdcloud.com/7f3b225b-5bb0-4179-bd66-7ecfe89078df
+```
 
 ## 📄 License
 

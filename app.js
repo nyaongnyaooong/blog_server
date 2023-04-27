@@ -1,5 +1,3 @@
-const createError = require('http-errors');
-
 //express
 const express = require('express');
 const app = express();
@@ -57,6 +55,8 @@ client.connect(err => {
 
 
 // ---------------------------------------------------------
+
+
 
 let gMarket = null;
 let gTicker = null;

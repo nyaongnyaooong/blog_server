@@ -43,7 +43,7 @@
 
 
 ## 🏷️ ERD
-![blog (3)](https://user-images.githubusercontent.com/68260365/235066087-b1c64561-994c-48b9-8e6f-67cd60f4c24e.png)
+![image](https://user-images.githubusercontent.com/68260365/235457043-ea5e2f6b-db1b-4cf9-a04d-80ac76ae786d.png)
 
 
 ## 📄 License

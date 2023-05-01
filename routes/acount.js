@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
-const salt = 'test';
+const { mySQLPool, AtlasDB } = require('../modules/db')
+
+
+//dotenv
+require('dotenv').config();
 
 const hashPW = (pw, salt) => {
   salt = salt || crypto.randomBytes(64).toString('hex');
@@ -17,6 +21,7 @@ const hashPW = (pw, salt) => {
 }
 
 
+
 //MongoDB Atlas Setting
 const dbURL = 'mongodb+srv://' + process.env.DB_ID + ':' + process.env.DB_PW + process.env.DB_URL;
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -25,11 +30,7 @@ MongoClient.connect(dbURL, (err, result) => {
   if (err) {
     return console.log(err);
   }
-
   db = result.db('project1');
-  console.log('acount DB connected.');
-
-
 });
 
 const jwt = require(path.join(__dirname, '../modules/jwt'));
@@ -39,21 +40,29 @@ const jwt = require(path.join(__dirname, '../modules/jwt'));
 // 로그인 요청
 router.post('/login/post', async (req, res) => {
   const { loginID, loginPW, url } = req.body;
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
+
   console.log('로그인 요청', req.body)
   try {
     // db에서 요청한 ID에 해당하는 data 가져옴
-    const dbResult = await db.collection('user').findOne({ name: loginID });
-    if (!dbResult) throw new Error('db');
-    const { name, key, salt } = dbResult;
-    if (!name) throw new Error('일치하는 아이디가 존재하지 않음');
+    // const dbResult = await db.collection('user').findOne({ name: loginID });
+    const [dbResult] = await mySQL.query(`SELECT *
+    FROM user
+    WHERE id='${loginID}'
+    `);
+    await mySQL.commit();
+
+    if (!dbResult.length) throw new Error('일치하는 아이디가 존재하지 않음');
+    const { id, salt, hash } = dbResult[0];
 
     // 로그인 요청한 PW 해시화
-    const loginKey = hashPW(loginPW, salt);
-    if (loginKey.key != key) throw new Error('비밀번호 틀림');
+    const { key } = hashPW(loginPW, salt);
+    if (key != hash) throw new Error('비밀번호 틀림');
 
     // payload
     const payload = {
-      userid: name,
+      userid: id,
       exp: '추가예정'
     };
 
@@ -69,13 +78,15 @@ router.post('/login/post', async (req, res) => {
     const resResult = {
       result: true,
       error: false,
-    }; 
+    };
     res.send(resResult)
     // res.redirect(url);
-    
+
   } catch (err) {
+    await mySQL.rollback();
+
     console.log(err)
-    console.log(typeof(err))
+    console.log(typeof (err))
     console.log(err.name)
     console.log(err.message)
     console.log('stack', err.stack);
@@ -91,41 +102,43 @@ router.post('/login/post', async (req, res) => {
 
 //회원가입 요청
 router.post('/register/post', async (req, res) => {
-  let { regID, regPW } = req.body;
+  const { regID, regPW } = req.body;
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
 
   try {
     // 중복 ID 검사
-    const duplication = await db.collection('user').findOne({ name: regID });
-    if (duplication) throw new Error('ID duplicated');
+    const [dupResult] = await mySQL.query(`SELECT user_serial 
+    FROM user
+    WHERE id='${regID}'`);
+    console.log(dupResult);
+    if (dupResult.length) throw new Error('ID duplicated');
 
     // PW Hash화
     const { salt, key } = hashPW(regPW);
-    const counter = await db.collection('counter').findOne({ pw: '1234' });
 
-    const idNum = counter.lastUserID + 1;
-    const dbObject = {
-      _id: idNum,
-      name: regID,
-      key: key,
-      salt: salt
-    }
+    const [addResult] = await mySQL.query(`INSERT INTO user(id, salt, hash) 
+    VALUES(
+      '${regID}',
+      '${salt}',
+      '${key}'
+    )`)
+    await mySQL.commit();
 
-    const addUserResult = await db.collection('user').insertOne(dbObject);
-    const addCounterResult = await db.collection('counter').updateOne({ pw: '1234' }, { $set: { lastUserID: idNum } });
-
-    const resObject = {
-      result: addUserResult,
-      error: false
-    };
-
-    res.send(resObject)
+    res.send({
+      result: addResult,
+      error: false,
+    })
   } catch (err) {
+    await mySQL.rollback();
     console.error(err);
-    const resObject = {
+
+    res.send({
       result: false,
       error: err
-    };
-    res.send(resObject);
+    });
+  } finally {
+    mySQL.release();
   }
 
 });

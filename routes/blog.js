@@ -1,5 +1,6 @@
 const router = require('express').Router({ mergeParams: true });
 const path = require('path');
+const { mySQLPool, AtlasDB } = require('../modules/db')
 
 //MongoDB Atlas Setting
 const dbURL = 'mongodb+srv://' + process.env.DB_ID + ':' + process.env.DB_PW + process.env.DB_URL;
@@ -13,42 +14,27 @@ MongoClient.connect(dbURL, (err, result) => {
 
 });
 
-let mysqlDB;
-
-const mysql = require("mysql2/promise");
-router.use("/blog*", async (req, res, next) => {
-  console.log(1)
-  try {
-    mysqlDB = await mysql.createConnection({
-      host: "localhost",
-      user: "root",
-      password: process.env.MY_SQL_PW,
-      database: "blog",
-    });
-    console.log('blog sql접속')
-    next();
-  } catch {
-    console.log('sqldb 접속불가');
-    next();
-  }
-});
-
-
-
 
 
 // Main 블로그 Router
 router.get('/blog/title', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
   try {
     console.log('SQL Request - 블로그 타이틀 리스트 요청');
     const readReqQuery = `
     SELECT title, pTitle
     FROM blogtitle
     `;
-    const [response] = await mysqlDB.query(readReqQuery);
+    const [response] = await mySQL.query(readReqQuery);
+    await mySQL.commit();
+
     res.send(response);
   } catch (error) {
+    await mySQL.rollback();
     console.error(error)
+  } finally {
+    mySQL.release();
   }
 });
 
@@ -56,6 +42,7 @@ router.get('/blog/title', async (req, res) => {
 
 router.get('/blog/:id', async (req, res) => {
   const result = await db.collection('blog').findOne({ _id: parseInt(req.params.id) });
+
   console.log(result)
   res.send(result);
 });

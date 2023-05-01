@@ -18,7 +18,7 @@ const Nav = (props) => {
   //middle section (navigate buttons)
   const BtnMidSect = () => {
     const btnArray = [];
-    for (let i = 1; i < btnList.length; i++) {
+    for (let i = 1; i < btnList.length-1; i++) {
       const btnName = btnList[i];
       let btnClass = "btn_nav_page ";
 
@@ -39,7 +39,9 @@ const Nav = (props) => {
     const FormUser = () => {
       return (
         <div className="nav_r_section">
-          <span>{userData.userid}</span>
+          <button className="btn_login_section" onClick={() => {
+            setPage(btnList.length-1);
+          }}>{userData.userid}</button>
           <button className="btn_login_section" onClick={() => {
             document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             setUserData(false);
@@ -63,7 +65,7 @@ const Nav = (props) => {
       )
     }
 
-    return userData ? <FormUser /> : <FormAnonymous />
+    return userData !== 'anonymous' ? <FormUser /> : <FormAnonymous />
   };
 
   return (

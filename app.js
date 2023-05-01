@@ -28,29 +28,26 @@ app.use(cookieParser());
 const cors = require('cors');
 app.use(cors());
 
-var indexRouter = require('./routes/index');
+// var indexRouter = require('./routes/index');
 // var usersRouter = require('./routes/users');
 
 //Static File (/ 라우터 포함)
 app.use(express.static('public'));
 
-app.use('/', indexRouter);
-// app.use('/users', usersRouter);
+const { mySQLPool, AtlasDB } = require('./modules/db')
 
-//MongoDB Atlas Setting
-const dbURL = 'mongodb+srv://' + process.env.DB_ID + ':' + process.env.DB_PW + process.env.DB_URL;
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
-let db;
-const client = new MongoClient(dbURL, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
-client.connect(err => {
-  db = client.db('project1');
 
-  app.listen(8080, () => {
-    console.log('listening on 8080');
-  });
+// 유저 데이터 관련 라우터
+app.use('/', require(path.join(__dirname, './routes/acount.js')));
 
-});
+// 메인 blog 관련 라우터
+app.use('/', require(path.join(__dirname, './routes/blog.js')));
+
+// 코인 모의투자 라우터
+app.use('/', require(path.join(__dirname, './routes/coin.js')));
+
+
 
 
 
@@ -110,24 +107,8 @@ getTicker();
 
 
 
-let mysqlDB;
 
-const mysql = require("mysql2/promise");
-app.use("/board*", async (req, res, next) => {
-  try {
-    mysqlDB = await mysql.createConnection({
-      host: 'svc.sel3.cloudtype.app',
-      port: '31665',
-      user: "root",
-      password: process.env.MY_SQL_PW,
-      database: "blog",
-    });
-    next();
-  } catch {
-    console.log('sqldb 접속불가');
-    next();
-  }
-});
+
 
 //jwt 인증 라우터
 const jwt = require(path.join(__dirname, './modules/jwt'));
@@ -166,7 +147,7 @@ app.use((req, res, next) => {
     req.user = { ...userData };
     next();
   } catch {
-    req.user = false;
+    req.user = 'anonymous';
     next();
   }
 });
@@ -174,17 +155,22 @@ app.use((req, res, next) => {
 
 // 게시판 - 게시글 list data read
 app.get("/board/data", async (req, res) => {
+  console.log('SQL Request - 게시판 리스트 요청');
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
   try {
-    console.log('SQL Request - 게시판 리스트 요청');
-    const readReqQuery = `
-    SELECT id, title, author, view, created 
+    await mySQL.beginTransaction();
+    let [result] = await mySQL.query(`SELECT board_serial, user_serial, title, content, date 
     FROM board
-    ORDER BY id DESC
-    `;
-    let [result] = await mysqlDB.query(readReqQuery);
+    ORDER BY board_serial DESC
+    `);
+    await mySQL.commit();
     res.send(result);
   } catch (error) {
-    console.error(error)
+    await mySQL.rollback();
+    console.error(error);
+  } finally {
+    mySQL.release();
   }
 });
 
@@ -193,23 +179,29 @@ app.get("/board/data", async (req, res) => {
 app.post("/board/post", async (req, res) => {
   const { title, content } = req.body;
   const { userid } = req.user;
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   console.log('SQL Request - 게시글 추가')
   try {
     if (!userid) throw new Error('유저 로그인 정보가 없습니다');
-    const createReqQuery = `
-    INSERT INTO board(title, content, created, author, view)
-    VALUES('${title}', '${content}', NOW(), '${userid}', 0)
-    `;
-    const [result] = await mysqlDB.query(createReqQuery);
-    // console.log(result);
+    await mySQL.beginTransaction();
+
+    const [result] = await mySQL.query(`INSERT INTO board(title, content, created, author, view)
+    VALUES('${title}', '${content}', NOW(), '${userid}', 0)`);
+
+    await mySQL.commit();
+
     if (result.affectedRows) res.send({ result: true, error: false });
     else throw new Error('db 추가 실패');
+
   } catch (error) {
+    await mySQL.rollback();
     console.error(error);
     // 400 bad request
     // 에러 세분화 필요
     res.status(400).send({ result: false, error: error });
+  } finally {
+    mySQL.release();
   }
 
 });
@@ -221,27 +213,25 @@ app.put("/board/put/:id", async (req, res) => {
   const { id } = req.params;
   const { title, content } = req.body;
   const { userid } = req.user;
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
 
-  const checkReqQuery = `
-    SELECT author
-    FROM board
-    WHERE id='${id}'
-  `;
-  const putReqQuery = `
-    UPDATE board
-    SET title='${title}', content='${content}'
-    WHERE id='${id}';
-  `;
 
   console.log('SQL Request - 게시글 수정')
   try {
-    const [checkResult] = await mysqlDB.query(checkReqQuery);
-    const { author } = checkResult[0];
+    await mySQL.beginTransaction();
 
+    const [checkResult] = await mySQL.query(`SELECT author
+    FROM board
+    WHERE id='${id}'`);
+    const { author } = checkResult[0];
     if (author !== userid) throw new Error('유저 정보 불일치');
 
-    const [putResult] = await mysqlDB.query(putReqQuery);
-    // console.log(delResult);
+    const [putResult] = await mySQL.query(`UPDATE board
+    SET title='${title}', content='${content}'
+    WHERE id='${id}'`);
+
+    await mySQL.commit();
+
     if (putResult.affectedRows) res.send({ result: true, error: false });
     else throw new Error('db 수정 실패');
 
@@ -249,6 +239,8 @@ app.put("/board/put/:id", async (req, res) => {
     // 400 bad request
     // 에러 세분화 필요
     res.send({ result: false, error: error });
+  } finally {
+    mySQL.release();
   }
 
 });
@@ -257,24 +249,21 @@ app.put("/board/put/:id", async (req, res) => {
 app.get('/board/:id', async (req, res) => {
   const { id } = req.params;
   const userData = req.user;
-
-  const putReqQuery = `
-    UPDATE board
-    SET view=view+1
-    WHERE id='${id}';
-  `;
-
-  const readReqQuery = `
-    SELECT id, title, content, author, view, created 
-    FROM board 
-    WHERE id=${id}
-  `;
-
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   try {
+    await mySQL.beginTransaction();
+
     console.log('SQL Request - 게시글', id, '번')
-    const [putRes] = await mysqlDB.query(putReqQuery);
-    const [rows] = await mysqlDB.query(readReqQuery);
+    const [putRes] = await mySQL.query(`UPDATE board
+    SET view=view+1
+    WHERE id='${id}';`);
+    const [rows] = await mySQL.query(`SELECT id, title, content, author, view, created 
+    FROM board 
+    WHERE id=${id}`);
+
+    await mySQL.commit();
+
     if (!rows) throw new Error('db error')
 
     const objectSend = {
@@ -293,30 +282,33 @@ app.get('/board/:id', async (req, res) => {
       error: error,
     };
     res.send(objectSend);
+  } finally {
+    mySQL.release();
   }
 });
 
 // board delete
 app.delete('/board/delete/:id', async (req, res) => {
   const { id } = req.params;
-  const checkReqQuery = `
-    SELECT author
-    FROM board
-    WHERE id='${id}'
-  `;
-  const deleteReqQuery = `
-    DELETE FROM board
-    WHERE id='${id}';
-  `;
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
+
 
   try {
-    const [checkResult] = await mysqlDB.query(checkReqQuery);
+    await mySQL.beginTransaction();
+    const [checkResult] = await mySQL.query(`SELECT author
+    FROM board
+    WHERE id='${id}'`);
     const { author } = checkResult[0];
 
     if (author !== req.user.userid) throw new Error('유저 정보 불일치');
 
-    const [delResult] = await mysqlDB.query(deleteReqQuery);
+    const [delResult] = await mySQL.query(`DELETE FROM board
+    WHERE id='${id}';`);
     // console.log(delResult);
+
+    await mySQL.commit();
+
     if (delResult.affectedRows) res.send({ result: true, error: false });
     else throw new Error('db 삭제 실패');
 
@@ -324,6 +316,8 @@ app.delete('/board/delete/:id', async (req, res) => {
     // 400 bad request
     // 에러 세분화 필요
     res.send({ result: false, error: error });
+  } finally {
+    mySQL.release();
   }
 
 });
@@ -370,12 +364,7 @@ app.get('/coindata/:market', async (req, res) => {
 
 
 
-//메인 blog 관련 라우터
-app.use('/', require(path.join(__dirname, './routes/blog.js')));
 
-
-//유저 데이터 관련 라우터
-app.use('/', require(path.join(__dirname, './routes/acount.js')));
 
 
 
@@ -408,6 +397,10 @@ app.use((req, res, next) => { // 404 처리 부분
 app.use((err, req, res, next) => { // 에러 처리 부분
   console.error(err.stack); // 에러 메시지 표시
   res.status(500).send('서버 에러!'); // 500 상태 표시 후 에러 메시지 전송
+});
+
+app.listen(8080, () => {
+  console.log('listening on 8080');
 });
 
 

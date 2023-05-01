@@ -242,7 +242,7 @@ const DetailPage = (props) => {
   return series && options && ticker ? (
     <div className='app'>
       <div className='coin-title'>
-        <div className='text-area'>
+        <div className='text-area'>  
           <Title data={ticker}></Title>
         </div>
         <div className='button-area'>

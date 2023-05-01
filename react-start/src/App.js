@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 
 import './css/App.css';
 import './css/animation.css';
@@ -34,6 +34,51 @@ const BgDarker = (props) => {
   else return <div ref={divDark} id="fadeOut" className="zhide" onClick={onClickFunction}></div>
 }
 
+
+const MyPage = (props) => {
+  // 유저정보 요청
+
+  return (
+    <div className='mypage-app'>
+
+      <div className='mypage-title'>
+        <h3>회원정보</h3>
+      </div>
+
+      <div className='mypage-id'>
+        <h4>아이디</h4>
+        {/* 아이디 */}
+      </div>
+
+      <div className='mypage-password'>
+        <h4>비밀번호</h4>
+        <div>
+          <input placeholder='현재 비밀번호'></input>
+        </div>
+        <div>
+          <input placeholder='변경할 비밀번호'></input>
+        </div>
+        <div>
+          <input placeholder='비밀번호 재입력'></input>
+        </div>
+
+        <div>
+          <button>변경</button>
+        </div>
+      </div>
+
+      <div className='mypage-coin'>
+        <h4>모의코인 투자</h4>
+        <span>잔액</span>
+        <span>충전한 금액</span>
+        <div>
+          <button>100만원 충전하기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const Content = (props) => {
   switch (props.page) {
     case 1:
@@ -42,6 +87,8 @@ const Content = (props) => {
       return <Board />
     case 3:
       return <Coin />
+    case 5:
+      return <MyPage />
 
     //   return <BoardPostCreate />
     // case 4:
@@ -57,7 +104,7 @@ const Content = (props) => {
 
 
 function App() {
-  const navBtnList = ["NyaongNyaooong", "Blog", "Board", "Coin", "menu2"];
+  const navBtnList = ['NyaongNyaooong', 'Blog', 'Board', 'Coin', 'menu2', 'mypage'];
 
   let nowPageState = 0;
   const urlPath = window.location.pathname;
@@ -97,7 +144,7 @@ function App() {
     fetchData();
   }, []);
 
-
+  console.log('render')
   // setTimeout(() => {
   //   setLoading(false);
   // }, 900);
@@ -120,7 +167,8 @@ function App() {
         <div className="middleSection">
 
           {/* <!-- 네비게이션바 --> */}
-          <Nav btnList={navBtnList} btnAct={page} stateFuncs={stateFunctions} userData={userData} />
+          {!userData ? <div></div> : <Nav btnList={navBtnList} btnAct={page} stateFuncs={stateFunctions} userData={userData} />}
+          
           {/* <!-- /네비게이션바 --> */}
 
           {/* <!-- Content --> */}

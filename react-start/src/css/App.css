@@ -114,7 +114,12 @@ ul {
   background-color: black;
 }
 
-
+.content {
+  display: flex;
+  /* align-items: center; */
+  justify-content: center;
+  
+}
 
 .content_box {
   display: flex;
@@ -326,8 +331,72 @@ ul {
   flex-direction: column;
 }
 
+/* 마이페이지 */
+.mypage-app {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
 
-/* 이하 코인 css */
+.mypage-app span {
+  font-size: 14px;
+}
+
+.mypage-app button {
+  margin: 0 auto;
+  width: 150px;
+  border: 0px;
+  border-radius: 4px;
+  background-color: lightsteelblue;
+  padding: 7px;
+  font-weight: 700;
+  color: antiquewhite;
+}
+
+.mypage-title {
+  width: 100%;
+  margin-top: 50px;
+}
+
+.mypage-id {
+  width: 100%;
+  margin-top: 50px;
+}
+
+.mypage-password {
+  display: flex;
+  margin-top: 50px;
+  width: 100%;
+  flex-direction: column;
+}
+
+.mypage-password input {
+  margin-top: 10px;
+  width: 50%;
+}
+
+.mypage-coin {
+  display: flex;
+  margin-top: 50px;
+  width: 100%;
+  flex-direction: column;
+
+}
+
+.mypage-block {
+  height: 50px;
+}
+
+
+
+
+
+
+
+
+
+/* 코인 css */
 
 .coin-title {
   display: flex;

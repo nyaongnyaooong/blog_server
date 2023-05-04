@@ -54,7 +54,7 @@ router.post('/login/post', async (req, res) => {
     await mySQL.commit();
 
     if (!dbResult.length) throw new Error('일치하는 아이디가 존재하지 않음');
-    const { id, salt, hash } = dbResult[0];
+    const { user_serial, id, salt, hash } = dbResult[0];
 
     // 로그인 요청한 PW 해시화
     const { key } = hashPW(loginPW, salt);
@@ -62,6 +62,7 @@ router.post('/login/post', async (req, res) => {
 
     // payload
     const payload = {
+      serial: user_serial,
       userid: id,
       exp: '추가예정'
     };
@@ -76,7 +77,7 @@ router.post('/login/post', async (req, res) => {
       HttpOnly: true
     });
     const resResult = {
-      result: true,
+      result: id,
       error: false,
     };
     res.send(resResult)

@@ -5,14 +5,14 @@ import './css/App.css';
 import './css/animation.css';
 import { LogInForm, RegisterForm } from './component/LogInForm'
 import Nav from './component/Navbar'
-// import Loading from './component/Loading'
+import { Loading2 } from './component/Loading'
 import { Blog } from './component/BlogRouter'
 import { Home, Board, BoardPostCreate, BoardPostRead, BoardPostUpdate } from './component/BoardRouter'
 import { Coin } from './component/CoinRouter'
 import axios from 'axios';
 
 
-
+// 백그라운드 어둡게
 const BgDarker = (props) => {
   const { active, stateFuncs } = props;
   const { setBgDarkAct, setLgnFrmAct, setRegFrmAct } = stateFuncs;
@@ -34,11 +34,41 @@ const BgDarker = (props) => {
   else return <div ref={divDark} id="fadeOut" className="zhide" onClick={onClickFunction}></div>
 }
 
-
+// 마이페이지
 const MyPage = (props) => {
-  // 유저정보 요청
+  const [profileData, setProfileData] = useState(null)
 
-  return (
+  // 유저정보 요청
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await axios.request({
+        method: 'get',
+        url: '/user/profile'
+      })
+      if (response.data.result) setProfileData(response.data.result);
+    }
+    fetchData();
+  }, [])
+
+  const chargeMoney = () => {
+    const fetchData = async () => {
+      const response = await axios.request({
+        method: 'post',
+        url: '/user/charge',
+      });
+      console.log(response)
+
+      if (response.data.result) {
+        const newProfile = { ...profileData };
+        newProfile.money = newProfile.money + 1000000;
+        newProfile.charge = newProfile.charge + 1;
+        setProfileData(newProfile);
+      }
+    }
+    fetchData();
+  }
+
+  return profileData ? (
     <div className='mypage-app'>
 
       <div className='mypage-title'>
@@ -47,7 +77,7 @@ const MyPage = (props) => {
 
       <div className='mypage-id'>
         <h4>아이디</h4>
-        {/* 아이디 */}
+        {profileData.id}
       </div>
 
       <div className='mypage-password'>
@@ -70,12 +100,16 @@ const MyPage = (props) => {
       <div className='mypage-coin'>
         <h4>모의코인 투자</h4>
         <span>잔액</span>
+        {profileData.money}
         <span>충전한 금액</span>
+        {profileData.charge}
         <div>
-          <button>100만원 충전하기</button>
+          <button onClick={chargeMoney}>100만원 충전하기</button>
         </div>
       </div>
     </div>
+  ) : (
+    <Loading2></Loading2>
   );
 }
 
@@ -101,7 +135,6 @@ const Content = (props) => {
       return <Home />
   };
 };
-
 
 function App() {
   const navBtnList = ['NyaongNyaooong', 'Blog', 'Board', 'Coin', 'menu2', 'mypage'];
@@ -138,7 +171,7 @@ function App() {
   // 최초 랜더링 시 로그인 정보 검증
   useEffect(() => {
     async function fetchData() {
-      const result = await axios.get('/userdata');
+      const result = await axios.get('/user/verify');
       setUserData(result.data);
     }
     fetchData();
@@ -168,7 +201,7 @@ function App() {
 
           {/* <!-- 네비게이션바 --> */}
           {!userData ? <div></div> : <Nav btnList={navBtnList} btnAct={page} stateFuncs={stateFunctions} userData={userData} />}
-          
+
           {/* <!-- /네비게이션바 --> */}
 
           {/* <!-- Content --> */}

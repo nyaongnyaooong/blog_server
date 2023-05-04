@@ -18,7 +18,7 @@ const MainPage = (props) => {
       try {
         const option = {
           method: 'get',
-          url: '/coindata'
+          url: '/coin/data'
         }
         const res = await axios.request(option);
 
@@ -127,18 +127,27 @@ const MainPage = (props) => {
 const DetailPage = (props) => {
   // coin: 어떤 코인의 디테일을 표시할 것인가?
   // stateFuncs: 뒤로 돌아가기용
-  const { coin, marketName, stateFuncs } = props;
-  const { setCoinPage } = stateFuncs;
+  const { coin, marketName, stateFuncs, refresh } = props;
+  const { setCoinPage, setAutoRefresh } = stateFuncs;
 
   const [series, setSeries] = useState(null);
   const [options, setOptions] = useState(null);
-  const [ticker, setTicker] = useState(null)
+  const [ticker, setTicker] = useState(null);
+
+  const [inputs, setInputs] = useState({
+    balance: '',
+    maxBuy: '',
+    buyAmount: '',
+    coinAmount: '',
+    maxSell: '',
+    sellAmount: '',
+  });
 
   const Title = (props) => {
     const { data } = props;
 
     return (
-      <div className='div-title'>
+      <div>
         <span>
           {'[' + coin + '] ' + marketName + ' ' + data.trade_price.toLocaleString('ko-KR')}
         </span>
@@ -147,6 +156,25 @@ const DetailPage = (props) => {
   }
 
   useEffect(() => {
+    const fetchData = async() => {
+      const response = await axios.request({
+        method: 'get',
+        url: '/user/coin',
+        params: {
+          market: coin,
+        }
+      });
+
+      console.log(response.data);
+    }
+
+    fetchData();
+  }, []);
+
+
+  // 캔들 데이터 get 후 그래프 그려냄 > 1초마다 반복
+  useEffect(() => {
+
     const fetchData = async (count) => {
       try {
         // 캔들데이터
@@ -232,72 +260,146 @@ const DetailPage = (props) => {
       }
     }
 
-    setInterval(async () => {
-      await fetchData(49);
-    }, 1500)
+    let timer;
+    if (refresh) {
+      timer = setInterval(async () => {
+        await fetchData(49);
+      }, 1500);
+    } else {
+      fetchData(49);
+    }
 
-  }, [coin]);
+    return () => {
+      clearInterval(timer);
+    };
 
+  }, [coin, refresh]);
 
   return series && options && ticker ? (
     <div className='app'>
       <div className='coin-title'>
-        <div className='text-area'>  
+        <div className='text-area'>
           <Title data={ticker}></Title>
         </div>
         <div className='button-area'>
           <div>
-          <button onClick={() => { setCoinPage('main') }}>업데이트 일시정지</button>
-          <button onClick={() => { setCoinPage('main') }}>메인으로</button>
+            <button onClick={() => {
+              setAutoRefresh(!refresh);
+            }}>
+              {
+                refresh ? '자동 업데이트 일시정지' : '자동 업데이트 재시작'
+              }
+            </button>
+            <button onClick={() => { setCoinPage('main') }}>메인으로</button>
           </div>
 
         </div>
       </div>
-
-
       <div id="chart">
-        <ReactApexChart options={options} series={series} type="candlestick" height={400} width={600} />
+        <ReactApexChart options={options} series={series} type="candlestick" height={300} width={600} />
       </div>
       <div className='trade'>
-        <div className='buy'>
-          <form>
-            <div>
-              <button>구매하기</button>
+        <form>
+          <div className='trade-type'>
+            <div className='desc-area'>
+              <div className='text-area'>
+                <span>잔액</span>
+              </div>
+              <div className='input-area'>
+                <input onChange={(event) => {
+                  const newInputs = { ...inputs }
+                  newInputs.balance = event.target.value
+                  setInputs(newInputs);
+                }} value={inputs.balance} />
+              </div>
             </div>
-          </form>
-        </div>
-        <div className='spare'></div>
-        <div className='sell'>
-          <form>
+            <div className='desc-area'>
+              <div className='text-area'>
+                최대 구매
+              </div>
+              <div className='input-area'>
+                <input onChange={(event) => {
+                  const newInputs = { ...inputs }
+                  newInputs.maxBuy = event.target.value
+                  setInputs(newInputs);
+                }} value={inputs.maxBuy} />
+              </div>
+            </div>
+            <div className='desc-area'>
+              <div className='text-area'>
+                <span>구매 수량</span>
+              </div>
+              <div className='input-area'>
+                <input onChange={(event) => {
+                  const newInputs = { ...inputs }
+                  newInputs.buyAmount = event.target.value
+                  setInputs(newInputs);
+                }} value={inputs.buyAmount} />
+              </div>
+            </div>
+            <div className='button-area'>
+              <button className='bgColorRed'>구매하기</button>
+            </div>
+          </div>
 
-            <div>
-              <button>판매하기</button>
+          <div className='spare'></div>
+
+          <div className='trade-type'>
+            <div className='desc-area'>
+              <div className='text-area'>
+                <span>보유 수량</span>
+              </div>
+              <div className='input-area'>
+                <input onChange={(event) => {
+                  const newInputs = { ...inputs }
+                  newInputs.coinAmount = event.target.value
+                  setInputs(newInputs);
+                }} value={inputs.coinAmount} />
+              </div>
             </div>
-          </form>
-        </div>
+            <div className='desc-area'>
+              <div className='text-area'>
+                <span>판매 수량</span>
+              </div>
+              <div className='input-area'>
+                <input onChange={(event) => {
+                  const newInputs = { ...inputs }
+                  newInputs.sellAmount = event.target.value
+                  setInputs(newInputs);
+                }} value={inputs.sellAmount} />
+              </div>
+            </div>
+            <div className='button-area'>
+              <button className='bgColorBlue'>판매하기</button>
+            </div>
+
+          </div>
+        </form>
       </div>
 
     </div>
   ) : (
     <Loading2 />
-  )
+  );
 };
 
 
 // 코인 페이지
 // coinPage 값에 따라 보여주는 페이지가 달라짐
 const Coin = () => {
-  const [coinPage, setCoinPage] = useState('main')
-  const [marketName, setMarketName] = useState(null)
+  const [coinPage, setCoinPage] = useState('main');
+  const [marketName, setMarketName] = useState(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   const stateFuncs = {
     setCoinPage,
-    setMarketName
-  }
+    setMarketName,
+    setAutoRefresh,
+  };
 
   if (coinPage !== 'main') {
     return (
-      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} />
+      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} refresh={autoRefresh} />
     );
   } else {
     return (

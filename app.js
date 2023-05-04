@@ -94,10 +94,15 @@ const getTicker = async () => {
 
   }
 }
-
 getTicker();
 
-
+app.get('/coin/data', async (req, res) => {
+  const resData = {
+    market: gMarket,
+    ticker: gTicker
+  }
+  res.send(resData);
+});
 
 
 
@@ -113,7 +118,12 @@ getTicker();
 //jwt 인증 라우터
 const jwt = require(path.join(__dirname, './modules/jwt'));
 
-// 토큰 검증 함수
+/** 
+ * 토큰 검증 함수 
+ * @param {token} token
+ * @returns 위변조된 토큰일 시 => return false
+ * @returns 이상 없을 시 => return payload
+*/
 const jwtExam = (token) => {
   // JWT Token : Header . Payload . Signature
   const splitToken = token.split('.');
@@ -130,27 +140,73 @@ const jwtExam = (token) => {
 
   //payload를 디코딩하여 req.user에 넣음
   //JSON => 자바스크립트 객체화
-  const user = JSON.parse(Buffer.from(encodedPayload, 'base64').toString('utf-8'));
-  return user;
+  const payload = JSON.parse(Buffer.from(encodedPayload, 'base64').toString('utf-8'));
+  console.log('payload:', payload)
+  return payload;
 }
 
 //토큰 검증 middleware
 app.use((req, res, next) => {
   try {
     const { accessToken } = req.cookies;
-    if (!accessToken) throw new Error('no cookie');
+    if (!accessToken) {
+      req.user = {
+        id: 'anonymous'
+      }
+      next();
+    }
 
     console.log('JWT Token Exam -', accessToken);
-    const userData = jwtExam(accessToken);
-    if (!userData) throw new Error('poisoned cookie');
+    const payload = jwtExam(accessToken);
+    if (!payload) throw new Error('poisoned cookie');
 
-    req.user = { ...userData };
+    req.user = {
+      serial: payload.serial,
+      id: payload.id,
+    }
     next();
-  } catch {
-    req.user = 'anonymous';
+  } catch (error) {
+    req.user = {
+      id: 'anonymous'
+    }
     next();
   }
 });
+
+
+
+// 금액 충전
+app.post('/user/charge', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
+  try {
+    if (req.user.id === 'anonymous') throw new Error('로그인정보 없음');
+    if (!req.user) throw new Error('토큰검증에 문제');
+
+    const [dbResult] = await mySQL.query(
+      `UPDATE user
+      SET money=money+1000000, charge=charge+1
+      WHERE id='${req.user.id}'`
+    );
+
+    await mySQL.commit();
+
+    res.send({
+      result: dbResult,
+      error: false,
+    });
+  } catch (error) {
+    console.log(error)
+    await mySQL.rollback();
+    res.send({
+      result: false,
+      error: error,
+    })
+  } finally {
+    mySQL.release();
+  }
+});
+
 
 
 // 게시판 - 게시글 list data read
@@ -174,11 +230,10 @@ app.get("/board/data", async (req, res) => {
   }
 });
 
-
 // 게시글 create
 app.post("/board/post", async (req, res) => {
   const { title, content } = req.body;
-  const { userid } = req.user;
+  const { userid } = req.user.id;
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   console.log('SQL Request - 게시글 추가')
@@ -205,8 +260,6 @@ app.post("/board/post", async (req, res) => {
   }
 
 });
-
-
 
 // 게시글 put
 app.put("/board/put/:id", async (req, res) => {
@@ -301,7 +354,7 @@ app.delete('/board/delete/:id', async (req, res) => {
     WHERE id='${id}'`);
     const { author } = checkResult[0];
 
-    if (author !== req.user.userid) throw new Error('유저 정보 불일치');
+    if (author !== req.user.id) throw new Error('유저 정보 불일치');
 
     const [delResult] = await mySQL.query(`DELETE FROM board
     WHERE id='${id}';`);
@@ -322,36 +375,96 @@ app.delete('/board/delete/:id', async (req, res) => {
 
 });
 
-
-
-
-
-
-
-
-app.get('/userdata', (req, res) => {
-  const userData = req.user;
+// 유저 인증 정보
+app.get('/user/verify', (req, res) => {
+  const userData = req.user.id;
   console.log("유저 데이터 요청", userData);
   res.send(userData);
 });
 
-app.get('/coindata', async (req, res) => {
-  const resData = {
-    market: gMarket,
-    ticker: gTicker
+// 유저 프로필 정보
+app.get('/user/profile', async (req, res, next) => {
+
+  const mysql = await mySQLPool.getConnection(async conn => conn);
+
+  try {
+    await mysql.beginTransaction();
+    const [result] = await mysql.query(
+      `SELECT id, money, charge
+      FROM user
+      WHERE id='${req.user.id}'`
+    );
+    // await mysql.commit();
+
+    res.send({
+      result: result[0],
+      error: false,
+    });
+  } catch (error) {
+    await mysql.rollback();
+    console.log(error)
+  } finally {
+    mysql.release();
   }
-  res.send(resData);
+  // const userData = req.user;
+  // console.log("유저 프로필 요청", userData);
+  // res.send(userData);
 });
 
-app.get('/coindata/:market', async (req, res) => {
-  console.log(req.body)
-  console.log(req.params)
-  const resData = {
-    market: gMarket,
-    ticker: gTicker
+// 유저 코인 정보
+app.get('/user/coin', (req, res, next) => {
+  if (!req.user.serial) {
+    res.send({
+      result: 'anonymouse',
+      error: false,
+    });
+  } else next();
+}, async (req, res) => {
+
+  const { market } = req.query
+  console.log(market)
+  const mysql = await mySQLPool.getConnection(async conn => conn);
+
+  try {
+    await mysql.beginTransaction();
+
+    const [result] = await mysql.query(
+      `SELECT price, amount
+      FROM coin
+      WHERE id='${market}', user_serial='${req.user.serial}'`
+    );
+
+    res.send({
+      result: result[0],
+      error: false,
+    });
+  } catch (error) {
+    await mysql.rollback();
+    console.log(error)
+
+    res.send({
+      result: false,
+      error: error,
+    });
+
+  } finally {
+    mysql.release();
   }
-  res.send(resData);
+  // const userData = req.user;
+  // console.log("유저 프로필 요청", userData);
+  // res.send(userData);
 });
+
+// app.get('/coindata/:market', async (req, res) => {
+//   console.log(req.body)
+//   console.log(req.params)
+//   console.log(123123123)
+//   const resData = {
+//     market: gMarket,
+//     ticker: gTicker
+//   }
+//   res.send(resData);
+// });
 
 
 

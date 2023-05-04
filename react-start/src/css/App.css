@@ -4,7 +4,13 @@
   font-weight: normal;
   font-style: normal;
 } */
+* {
+  box-sizing: border-box;
+}
 
+button {
+  cursor: pointer;
+}
 
 @font-face {
   font-family: 'SCDream';
@@ -25,7 +31,7 @@ body {
   font-family: 'SCDream';
   background-color: rgb(41, 41, 41);
   margin: 0px;
-  user-select : none;
+  user-select: none;
 }
 
 table {
@@ -118,7 +124,7 @@ ul {
   display: flex;
   /* align-items: center; */
   justify-content: center;
-  
+
 }
 
 .content_box {
@@ -399,6 +405,9 @@ ul {
 /* 코인 css */
 
 .coin-title {
+  margin: 10px;
+  margin-top: 30px;
+
   display: flex;
   flex-direction: column;
   width: 600px;
@@ -417,37 +426,65 @@ ul {
 }
 
 .trade {
-  display: flex;
-  width: 600px;
-  flex-direction: row;
-  /* 가로정렬 */
-  justify-content: center;
-  /* 세로정렬 */
-  align-items: center;
+  padding: 10px;
+  width: 100%;
+  height: 150px;
 }
 
-.buy {
+.trade form {
   display: flex;
-  flex: 15;
-  /* margin: 0 auto; */
+  width: 100%;
+  height: 100%;
   flex-direction: row;
   /* 가로정렬 */
   justify-content: center;
   /* 세로정렬 */
-  align-items: center;
+  /* align-items: center; */
+}
+
+.trade button {
+  margin-top: 5px;
+  width: 70px;
+  height: 30px;
+  color: antiquewhite;
+  border-radius: 3px;
+  border: 0px;
+}
+
+.bgColorRed {
+  background-color: crimson;
+}
+
+.bgColorBlue {
+  background-color: royalblue;
+}
+
+.trade-type {
+  flex: 20;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.trade-type .desc-area {
+  display: flex;
+  flex-direction: row;
+}
+
+.trade-type .desc-area .text-area {
+  flex: 3;
+  font-size: 12px;
+}
+
+.trade-type .desc-area .input-area {
+  flex: 2;
+}
+
+.trade-type .desc-area .input-area input {
+  width: 100%;
+  height: 100%;
 }
 
 .spare {
-  width: 20px;
-}
-
-.sell {
-  display: flex;
-  flex: 15;
-  /* margin: 0 auto; */
-  flex-direction: row;
-  /* 가로정렬 */
-  justify-content: center;
-  /* 세로정렬 */
-  align-items: center;
+  flex: 1;
 }

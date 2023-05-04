@@ -38,24 +38,13 @@ const DivLineGroup = (props) => {
   )
 }
 
-
-
-
 const LogInForm = (props) => {
   const { active, stateFuncs } = props;
-  const { setLgnFrmAct, setBgDarkAct } = stateFuncs;
+  const { setLgnFrmAct, setBgDarkAct, setUserData } = stateFuncs;
 
   let [inputID, setInputID] = useState('');
   let [inputPW, setInputPW] = useState('');
   let [message, setMessage] = useState('');
-
-  const getID = (e) => {
-    setInputID(e.target.value);
-  }
-
-  const getPW = (e) => {
-    setInputPW(e.target.value);
-  }
 
   const location = useLocation();
   let [nowURL, setNowURL] = useState('');
@@ -75,6 +64,7 @@ const LogInForm = (props) => {
       if (response.data.result) {
         setLgnFrmAct(false);
         setBgDarkAct(false);
+        setUserData(response.data.result);
       } else {
         console.log(response.data.error)
         // throw new Error(response.data.error);
@@ -106,15 +96,19 @@ const LogInForm = (props) => {
 
         <FormGroup>
           <InputGroup>
-            <input type="text" placeholder="아이디" onChange={getID} value={inputID} name='inputID'></input>
-            {/* <input type="text" placeholder="아이디" name='loginID'></input> */}
+            <input type="text" placeholder="아이디" onChange={(e) => {
+              setInputID(e.target.value);
+            }} value={inputID} name='inputID'></input>
+
           </InputGroup>
         </FormGroup>
 
         <FormGroup>
           <InputGroup>
-            <input type="password" placeholder="비밀번호" onChange={getPW} value={inputPW} name='inputPW'></input>
-            {/* <input type="password" placeholder="비밀번호" name='loginPW'></input> */}
+            <input type="password" placeholder="비밀번호" onChange={(e) => {
+              setInputPW(e.target.value);
+            }} value={inputPW} name='inputPW'></input>
+
           </InputGroup>
         </FormGroup>
 
@@ -152,6 +146,7 @@ const LogInForm = (props) => {
     </div>
   )
 };
+
 
 const RegisterForm = (props) => {
 

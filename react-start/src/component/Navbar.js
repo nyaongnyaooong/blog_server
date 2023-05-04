@@ -41,10 +41,10 @@ const Nav = (props) => {
         <div className="nav_r_section">
           <button className="btn_login_section" onClick={() => {
             setPage(btnList.length-1);
-          }}>{userData.userid}</button>
+          }}>{userData}</button>
           <button className="btn_login_section" onClick={() => {
             document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            setUserData(false);
+            setUserData('anonymous');
           }}>LogOut</button>
         </div>
       )
@@ -80,7 +80,7 @@ const Nav = (props) => {
 
       {/* Navigationbar mid section */}
       <div className="nav_m_section">
-        <ul>
+        <ul className='menuList'>
           <BtnMidSect></BtnMidSect>
         </ul>
       </div>

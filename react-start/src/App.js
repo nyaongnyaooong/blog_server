@@ -173,6 +173,7 @@ function App() {
     async function fetchData() {
       const result = await axios.get('/user/verify');
       setUserData(result.data);
+      console.log(result.data);
     }
     fetchData();
   }, []);

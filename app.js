@@ -147,22 +147,22 @@ const jwtExam = (token) => {
 
 //토큰 검증 middleware
 app.use((req, res, next) => {
-  try {
-    const { accessToken } = req.cookies;
-    if (!accessToken) {
-      req.user = {
-        id: 'anonymous'
-      }
-      next();
+  const { accessToken } = req.cookies;
+  if (!accessToken) {
+    req.user = {
+      id: 'anonymous'
     }
+    return next();
+  }
 
+  try {
     console.log('JWT Token Exam -', accessToken);
     const payload = jwtExam(accessToken);
     if (!payload) throw new Error('poisoned cookie');
 
     req.user = {
       serial: payload.serial,
-      id: payload.id,
+      id: payload.userid,
     }
     next();
   } catch (error) {
@@ -378,6 +378,7 @@ app.delete('/board/delete/:id', async (req, res) => {
 // 유저 인증 정보
 app.get('/user/verify', (req, res) => {
   const userData = req.user.id;
+  console.log(req.user)  
   console.log("유저 데이터 요청", userData);
   res.send(userData);
 });
@@ -421,7 +422,7 @@ app.get('/user/coin', (req, res, next) => {
   } else next();
 }, async (req, res) => {
 
-  const { market } = req.query
+  const { market } = req.query;
   console.log(market)
   const mysql = await mySQLPool.getConnection(async conn => conn);
 
@@ -431,8 +432,20 @@ app.get('/user/coin', (req, res, next) => {
     const [result] = await mysql.query(
       `SELECT price, amount
       FROM coin
-      WHERE id='${market}', user_serial='${req.user.serial}'`
+      WHERE market='${market}' AND user_serial=${req.user.serial}`
     );
+
+    const [result2] = await mysql.query(
+      `SELECT money
+      FROM user
+      WHERE user_serial=${req.user.serial}`
+    );
+
+    if(!result[0]) result.push({amount: 0});
+
+    console.log(result)
+    result[0].money = result2[0].money;
+    console.log(result)
 
     res.send({
       result: result[0],
@@ -450,9 +463,7 @@ app.get('/user/coin', (req, res, next) => {
   } finally {
     mysql.release();
   }
-  // const userData = req.user;
-  // console.log("유저 프로필 요청", userData);
-  // res.send(userData);
+
 });
 
 // app.get('/coindata/:market', async (req, res) => {

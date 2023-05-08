@@ -134,12 +134,15 @@ const DetailPage = (props) => {
   const [options, setOptions] = useState(null);
   const [ticker, setTicker] = useState(null);
 
+  const [userCoinData, setUserCoinData] = useState({});
+
+  // const [userCoinData, setUserCoinData] = useState({
+  //   balance: 0,
+  //   maxBuy: 0,
+  //   coinAmount: 0,
+  // });
   const [inputs, setInputs] = useState({
-    balance: '',
-    maxBuy: '',
     buyAmount: '',
-    coinAmount: '',
-    maxSell: '',
     sellAmount: '',
   });
 
@@ -156,7 +159,19 @@ const DetailPage = (props) => {
   }
 
   useEffect(() => {
-    const fetchData = async() => {
+    if (ticker) {
+      const newUserCoinData = { ...userCoinData }
+      // console.log(ticker);
+      const balance = newUserCoinData.balance || 0;
+      const price = ticker.trade_price || 1;
+      newUserCoinData.maxBuy = parseInt(balance / price * 10000) / 10000;
+      setUserCoinData(newUserCoinData);
+    }
+  }, [ticker])
+
+  // 캔들 데이터 get 후 그래프 그려냄 > 1초마다 반복
+  useEffect(() => {
+    const initFetchData = async () => {
       const response = await axios.request({
         method: 'get',
         url: '/user/coin',
@@ -165,15 +180,16 @@ const DetailPage = (props) => {
         }
       });
 
-      console.log(response.data);
+      if (response.data.result) {
+        const newUserCoinData = { ...userCoinData }
+        newUserCoinData.balance = response.data.result.money;
+        newUserCoinData.coinAmount = response.data.result.amount;
+
+        setUserCoinData(newUserCoinData);
+
+      }
     }
-
-    fetchData();
-  }, []);
-
-
-  // 캔들 데이터 get 후 그래프 그려냄 > 1초마다 반복
-  useEffect(() => {
+    initFetchData();
 
     const fetchData = async (count) => {
       try {
@@ -275,8 +291,20 @@ const DetailPage = (props) => {
 
   }, [coin, refresh]);
 
+  const reqTrade = async (event) => {
+    event.preventDefault();
+
+    const response = await axios.request({
+      method: 'post',
+      url: '/user/coin/buy'
+    })
+    
+
+  }
+
   return series && options && ticker ? (
     <div className='app'>
+
       <div className='coin-title'>
         <div className='text-area'>
           <Title data={ticker}></Title>
@@ -295,34 +323,28 @@ const DetailPage = (props) => {
 
         </div>
       </div>
+
       <div id="chart">
         <ReactApexChart options={options} series={series} type="candlestick" height={300} width={600} />
       </div>
+
       <div className='trade'>
-        <form>
+        <form onSubmit={reqTrade}>
           <div className='trade-type'>
             <div className='desc-area'>
               <div className='text-area'>
                 <span>잔액</span>
               </div>
               <div className='input-area'>
-                <input onChange={(event) => {
-                  const newInputs = { ...inputs }
-                  newInputs.balance = event.target.value
-                  setInputs(newInputs);
-                }} value={inputs.balance} />
+                <span>{userCoinData.balance ? userCoinData.balance.toLocaleString('ko-KR') : 0}</span>
               </div>
             </div>
             <div className='desc-area'>
               <div className='text-area'>
-                최대 구매
+                최대 구매 가능 수량
               </div>
               <div className='input-area'>
-                <input onChange={(event) => {
-                  const newInputs = { ...inputs }
-                  newInputs.maxBuy = event.target.value
-                  setInputs(newInputs);
-                }} value={inputs.maxBuy} />
+                <span>{userCoinData.maxBuy || 0}</span>
               </div>
             </div>
             <div className='desc-area'>
@@ -330,7 +352,7 @@ const DetailPage = (props) => {
                 <span>구매 수량</span>
               </div>
               <div className='input-area'>
-                <input onChange={(event) => {
+                <input name='buyAmount' onChange={(event) => {
                   const newInputs = { ...inputs }
                   newInputs.buyAmount = event.target.value
                   setInputs(newInputs);
@@ -338,7 +360,7 @@ const DetailPage = (props) => {
               </div>
             </div>
             <div className='button-area'>
-              <button className='bgColorRed'>구매하기</button>
+              <button type='submit' className='bgColorRed' name='reqBuy'>구매하기</button>
             </div>
           </div>
 
@@ -350,11 +372,7 @@ const DetailPage = (props) => {
                 <span>보유 수량</span>
               </div>
               <div className='input-area'>
-                <input onChange={(event) => {
-                  const newInputs = { ...inputs }
-                  newInputs.coinAmount = event.target.value
-                  setInputs(newInputs);
-                }} value={inputs.coinAmount} />
+                <span>{userCoinData.coinAmount}</span>
               </div>
             </div>
             <div className='desc-area'>
@@ -362,7 +380,7 @@ const DetailPage = (props) => {
                 <span>판매 수량</span>
               </div>
               <div className='input-area'>
-                <input onChange={(event) => {
+                <input name='sellAmount' onChange={(event) => {
                   const newInputs = { ...inputs }
                   newInputs.sellAmount = event.target.value
                   setInputs(newInputs);
@@ -370,7 +388,7 @@ const DetailPage = (props) => {
               </div>
             </div>
             <div className='button-area'>
-              <button className='bgColorBlue'>판매하기</button>
+              <button className='bgColorBlue' name='reqSell'>판매하기</button>
             </div>
 
           </div>

@@ -378,7 +378,7 @@ app.delete('/board/delete/:id', async (req, res) => {
 // 유저 인증 정보
 app.get('/user/verify', (req, res) => {
   const userData = req.user.id;
-  console.log(req.user)  
+  console.log(req.user)
   console.log("유저 데이터 요청", userData);
   res.send(userData);
 });
@@ -441,7 +441,7 @@ app.get('/user/coin', (req, res, next) => {
       WHERE user_serial=${req.user.serial}`
     );
 
-    if(!result[0]) result.push({amount: 0});
+    if (!result[0]) result.push({ amount: 0 });
 
     console.log(result)
     result[0].money = result2[0].money;
@@ -480,7 +480,145 @@ app.get('/user/coin', (req, res, next) => {
 
 
 
+app.post('/user/coin/trade', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
 
+  const getCoinData = (tickerData, marketName) => {
+    let result = false;
+    tickerData.forEach((e) => {
+      if (e.market === marketName) {
+        result = e;
+        return false;
+      }
+    })
+    return result;
+  }
+
+  const { market, amount } = req.body;
+
+  // 구매면 true 판매면 false
+  let tradeType;
+  if (req.body.request === 'buy') tradeType = true;
+  else if (req.body.request === 'sell') tradeType = false;
+  else throw new Error('trade request error');
+
+  try {
+    if (req.user.id === 'anonymous') throw new Error('user data null');
+
+    //요청한 코인의 현재가 확인
+    const coinData = getCoinData(gTicker, market);
+    const { trade_price } = coinData;
+
+    await mySQL.beginTransaction();
+
+    if (tradeType) {
+      // 유저의 현금 불러오기
+      let [result1] = await mySQL.query(
+        `SELECT *
+          FROM user
+          WHERE user_serial=${req.user.serial}`
+      );
+
+      // 돈이 부족한지 확인
+      const userData = result1[0];
+      if (userData.money < amount * trade_price) throw new Error('not enough money')
+    }
+
+    // 유저의 요청한 코인 보유 수량 불러오기
+    let [result2] = await mySQL.query(
+      `SELECT *
+      FROM coin
+      WHERE user_serial=${req.user.serial} AND market='${market}'`
+    );
+
+    // 보유수량이 없으면 수량이 0인 객체 생성
+    const userOwnData = result2[0] || {
+      price: 0,
+      amount: 0
+    };
+    userOwnData.price = Number(userOwnData.price);
+    userOwnData.amount = Number(userOwnData.amount);
+
+    if (!tradeType) {
+      if (userOwnData.amount < amount) throw new Error('not enough coin');
+    }
+
+    // 요청한 코인 수량 및 평단가 반영
+    if (tradeType) {
+      // 구매시
+      userOwnData.price = (userOwnData.amount * userOwnData.price + trade_price * amount) / (userOwnData.amount + amount);
+      userOwnData.amount = userOwnData.amount + amount;
+    } else {
+      // 판매시
+      userOwnData.price = userOwnData.amount !== amount ? 
+      (userOwnData.amount * userOwnData.price - trade_price * amount) / (userOwnData.amount - amount) :
+      0;
+      userOwnData.amount = userOwnData.amount - amount;
+    }
+
+
+
+    if (tradeType) {
+      // 현금 차감
+      const [result3] = await mySQL.query(
+        `UPDATE user
+        SET money=money-${trade_price * amount}
+        WHERE user_serial='${req.user.serial}'`
+      );
+    } else {
+      // 현금 차감
+      const [result3] = await mySQL.query(
+        `UPDATE user
+        SET money=money+${trade_price * amount}
+        WHERE user_serial='${req.user.serial}'`
+      );
+    }
+
+    // 보유 코인 수정
+    if (userOwnData.coin_serial) {
+      const [result4] = await mySQL.query(
+        `UPDATE coin
+        SET price=${userOwnData.price}, amount=${userOwnData.amount}
+        WHERE user_serial='${req.user.serial}'`
+      )
+    } else {
+      const [result4] = await mySQL.query(
+        `INSERT INTO coin(user_serial, market, price, amount)
+        VALUES(${req.user.serial}, '${market}', ${userOwnData.price}, ${userOwnData.amount})`
+      );
+
+    }
+
+    // 매매 히스토리 기록
+    const [result5] = await mySQL.query(
+      `INSERT INTO trade(user_serial, trading, market, date)
+      VALUES(${req.user.serial}, ${tradeType}, '${market}', NOW())`
+    );
+
+    await mySQL.commit();
+
+    res.send({
+      result: true,
+      error: false,
+    });
+
+  } catch (error) {
+    await mySQL.rollback();
+    console.log(error)
+
+    let code = '00';
+    if (error.message === 'user data null') code = '01';
+    if (error.message === 'not enough money') code = '02';
+
+    res.send({
+      result: false,
+      error: code
+    });
+
+  } finally {
+    mySQL.release();
+  }
+});
 
 
 

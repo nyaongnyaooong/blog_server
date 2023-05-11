@@ -60,7 +60,7 @@ const MainPage = (props) => {
       return (
         <a href='/' onClick={(event) => {
           event.preventDefault();
-          setCoinPage(page);
+          setCoinPage([page]);
           setMarketName(children);
         }}>
           {children}
@@ -127,7 +127,9 @@ const MainPage = (props) => {
 const DetailPage = (props) => {
   // coin: 어떤 코인의 디테일을 표시할 것인가?
   // stateFuncs: 뒤로 돌아가기용
-  const { coin, marketName, stateFuncs, refresh } = props;
+  const coin = props.coin;
+  
+  const { marketName, stateFuncs, refresh } = props;
   const { setCoinPage, setAutoRefresh } = stateFuncs;
 
   const [series, setSeries] = useState(null);
@@ -136,11 +138,6 @@ const DetailPage = (props) => {
 
   const [userCoinData, setUserCoinData] = useState({});
 
-  // const [userCoinData, setUserCoinData] = useState({
-  //   balance: 0,
-  //   maxBuy: 0,
-  //   coinAmount: 0,
-  // });
   const [inputs, setInputs] = useState({
     buyAmount: '',
     sellAmount: '',
@@ -161,13 +158,12 @@ const DetailPage = (props) => {
   useEffect(() => {
     if (ticker) {
       const newUserCoinData = { ...userCoinData }
-      // console.log(ticker);
       const balance = newUserCoinData.balance || 0;
       const price = ticker.trade_price || 1;
       newUserCoinData.maxBuy = parseInt(balance / price * 10000) / 10000;
       setUserCoinData(newUserCoinData);
     }
-  }, [ticker])
+  }, [coin, ticker])
 
   // 캔들 데이터 get 후 그래프 그려냄 > 1초마다 반복
   useEffect(() => {
@@ -291,15 +287,40 @@ const DetailPage = (props) => {
 
   }, [coin, refresh]);
 
-  const reqTrade = async (event) => {
+  const reqTrade = async (event, tradeType) => {
     event.preventDefault();
+    let inputValue;
+    if(tradeType === 'buy') {
+      inputValue = Number(event.target.buyAmount.value);
+    } else if (tradeType === 'sell') {
+      inputValue = Number(event.target.sellAmount.value);
+    }
 
-    const response = await axios.request({
-      method: 'post',
-      url: '/user/coin/buy'
-    })
-    
+    try {
+      if (isNaN(inputValue)) throw new Error('숫자만 입력해주세요');
 
+      const response = await axios.request({
+        method: 'post',
+        url: '/user/coin/trade',
+        data: {
+          request: tradeType,
+          market: coin[0],
+          amount: inputValue,
+        },
+      });
+
+      if (response.data.error === '00') throw new Error('알 수 없는 오류 발생');
+      if (response.data.error === '01') throw new Error('로그인 해주세요');
+      if (response.data.error === '02') throw new Error('잔액이 부족합니다\n(구매전에는 충분했더라도 시장가가 변하여 부족해졌을 수 있습니다)');
+
+      if(response.data.result) {
+        const refresh = ['KRW-ETH'];
+        console.log(refresh)
+        setCoinPage(['KRW-ETH']);
+      }
+    } catch (error) {
+      alert(error.message);
+    }
   }
 
   return series && options && ticker ? (
@@ -318,7 +339,7 @@ const DetailPage = (props) => {
                 refresh ? '자동 업데이트 일시정지' : '자동 업데이트 재시작'
               }
             </button>
-            <button onClick={() => { setCoinPage('main') }}>메인으로</button>
+            <button onClick={() => { setCoinPage(['main']) }}>메인으로</button>
           </div>
 
         </div>
@@ -329,8 +350,8 @@ const DetailPage = (props) => {
       </div>
 
       <div className='trade'>
-        <form onSubmit={reqTrade}>
-          <div className='trade-type'>
+        <div className='trade-type'>
+          <form onSubmit={(e) => reqTrade(e, 'buy')}>
             <div className='desc-area'>
               <div className='text-area'>
                 <span>잔액</span>
@@ -362,11 +383,13 @@ const DetailPage = (props) => {
             <div className='button-area'>
               <button type='submit' className='bgColorRed' name='reqBuy'>구매하기</button>
             </div>
-          </div>
+          </form>
+        </div>
 
-          <div className='spare'></div>
+        <div className='spare'></div>
 
-          <div className='trade-type'>
+        <div className='trade-type'>
+          <form onSubmit={(e) => reqTrade(e, 'sell')}>
             <div className='desc-area'>
               <div className='text-area'>
                 <span>보유 수량</span>
@@ -391,8 +414,9 @@ const DetailPage = (props) => {
               <button className='bgColorBlue' name='reqSell'>판매하기</button>
             </div>
 
-          </div>
-        </form>
+          </form>
+        </div>
+
       </div>
 
     </div>
@@ -405,7 +429,7 @@ const DetailPage = (props) => {
 // 코인 페이지
 // coinPage 값에 따라 보여주는 페이지가 달라짐
 const Coin = () => {
-  const [coinPage, setCoinPage] = useState('main');
+  const [coinPage, setCoinPage] = useState(['main']);
   const [marketName, setMarketName] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -415,7 +439,7 @@ const Coin = () => {
     setAutoRefresh,
   };
 
-  if (coinPage !== 'main') {
+  if (coinPage[0] !== 'main') {
     return (
       <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} refresh={autoRefresh} />
     );

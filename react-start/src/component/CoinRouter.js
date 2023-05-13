@@ -109,7 +109,7 @@ const MainPage = (props) => {
 
   //ticker 값이 들어오지않으면 Loading표시 
   return ticker ? (
-    <div className="app alignCenter">
+    <div className="app alignCenter ani_fadeIn">
       <div>
         <h1>암호화폐 모의투자</h1>
       </div>

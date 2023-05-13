@@ -1,15 +1,20 @@
 /* blog, board 리스트 글자 크기 */
-.boardListTitle {
-  font-size: 12px;
-  color: white;
-  letter-spacing: 1px;
+.board_tbody_tr {
+  cursor: pointer;
 }
 
-.boardTable {
+.board_tbody_tr :hover {
+  color: steelblue;
+}
+
+.board_table {
   /* 크기고정 */
   table-layout: fixed;
   /* 내부 값이 줄바꿈을 하지 않음 */
   white-space: nowrap; 
+  font-size: 12px;
+  color: white;
+  letter-spacing: 1px;
 }
 
 .board_title {
@@ -99,7 +104,7 @@
   color: white;
   border: 0px solid ;
   border-radius: 30px;
-  cursor : pointer;
+  cursor: pointer;
   font-size: 15px;
   padding-top: 8px;
   padding-bottom: 8px;

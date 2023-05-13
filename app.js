@@ -209,19 +209,23 @@ app.post('/user/charge', async (req, res) => {
 
 
 
-// 게시판 - 게시글 list data read
+// 게시판 - 게시글 list data
 app.get("/board/data", async (req, res) => {
   console.log('SQL Request - 게시판 리스트 요청');
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   try {
     await mySQL.beginTransaction();
-    let [result] = await mySQL.query(`SELECT board_serial, user_serial, title, content, date 
+    let [resSQL] = await mySQL.query(`SELECT board_serial, user_serial, id, title, content, date 
     FROM board
     ORDER BY board_serial DESC
     `);
-    await mySQL.commit();
-    res.send(result);
+    // await mySQL.commit();
+    console.log(resSQL)
+    res.send({
+      result: resSQL,
+      error: false,
+    });
   } catch (error) {
     await mySQL.rollback();
     console.error(error);
@@ -233,16 +237,16 @@ app.get("/board/data", async (req, res) => {
 // 게시글 create
 app.post("/board/post", async (req, res) => {
   const { title, content } = req.body;
-  const { userid } = req.user.id;
+  const { serial, id } = req.user;
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   console.log('SQL Request - 게시글 추가')
   try {
-    if (!userid) throw new Error('유저 로그인 정보가 없습니다');
+    if (!serial) throw new Error('유저 로그인 정보가 없습니다');
     await mySQL.beginTransaction();
 
-    const [result] = await mySQL.query(`INSERT INTO board(title, content, created, author, view)
-    VALUES('${title}', '${content}', NOW(), '${userid}', 0)`);
+    const [result] = await mySQL.query(`INSERT INTO board(user_serial, id, title, content, date)
+    VALUES(${serial}, '${id}', '${title}', '${content}', NOW())`);
 
     await mySQL.commit();
 
@@ -254,7 +258,13 @@ app.post("/board/post", async (req, res) => {
     console.error(error);
     // 400 bad request
     // 에러 세분화 필요
-    res.status(400).send({ result: false, error: error });
+    let code = '00';
+    if (error.message === '유저 로그인 정보가 없습니다') code = '01';
+    res.send({
+      result: false,
+      error: code
+    })
+    // res.status(400).send({ result: false, error: error });
   } finally {
     mySQL.release();
   }
@@ -299,29 +309,29 @@ app.put("/board/put/:id", async (req, res) => {
 });
 
 // 게시글 read
-app.get('/board/:id', async (req, res) => {
-  const { id } = req.params;
+app.get('/board/:serial', async (req, res) => {
+  const { serial } = req.params;
   const userData = req.user;
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   try {
     await mySQL.beginTransaction();
 
-    console.log('SQL Request - 게시글', id, '번')
-    const [putRes] = await mySQL.query(`UPDATE board
-    SET view=view+1
-    WHERE id='${id}';`);
-    const [rows] = await mySQL.query(`SELECT id, title, content, author, view, created 
+    console.log('SQL Request - 게시글', serial, '번')
+    // const [putRes] = await mySQL.query(`UPDATE board
+    // SET view=view+1
+    // WHERE id='${serial}';`);
+    const [resSQL] = await mySQL.query(`SELECT user_serial, id, title, content, date 
     FROM board 
-    WHERE id=${id}`);
+    WHERE board_serial=${serial}`);
 
-    await mySQL.commit();
+    // await mySQL.commit();
 
-    if (!rows) throw new Error('db error')
+    if (!resSQL) throw new Error('db error')
 
     const objectSend = {
       result: {
-        sqlData: rows[0],
+        sqlData: resSQL[0],
         userData: userData,
       },
       error: false,
@@ -341,23 +351,23 @@ app.get('/board/:id', async (req, res) => {
 });
 
 // board delete
-app.delete('/board/delete/:id', async (req, res) => {
-  const { id } = req.params;
+app.delete('/board/delete/:serial', async (req, res) => {
+  const { serial } = req.params;
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
 
 
   try {
     await mySQL.beginTransaction();
-    const [checkResult] = await mySQL.query(`SELECT author
+    const [resSQL1] = await mySQL.query(`SELECT user_serial
     FROM board
-    WHERE id='${id}'`);
-    const { author } = checkResult[0];
+    WHERE board_serial='${serial}'`);
+    const { user_serial } = resSQL1[0];
 
-    if (author !== req.user.id) throw new Error('유저 정보 불일치');
+    if (user_serial !== req.user.serial && req.user.id !== 'admin') throw new Error('유저 정보 불일치');
 
     const [delResult] = await mySQL.query(`DELETE FROM board
-    WHERE id='${id}';`);
+    WHERE board_serial='${serial}';`);
     // console.log(delResult);
 
     await mySQL.commit();
@@ -550,9 +560,9 @@ app.post('/user/coin/trade', async (req, res) => {
       userOwnData.amount = userOwnData.amount + amount;
     } else {
       // 판매시
-      userOwnData.price = userOwnData.amount !== amount ? 
-      (userOwnData.amount * userOwnData.price - trade_price * amount) / (userOwnData.amount - amount) :
-      0;
+      userOwnData.price = userOwnData.amount !== amount ?
+        (userOwnData.amount * userOwnData.price - trade_price * amount) / (userOwnData.amount - amount) :
+        0;
       userOwnData.amount = userOwnData.amount - amount;
     }
 

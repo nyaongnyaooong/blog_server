@@ -6,17 +6,18 @@
 ### ⚠️ 주의사항
 - 정상적인 구동을 위해서 .env 파일이 필요합니다
 
-## 📄 업데이트 세부 Comment
+## 📄 세부 작업내역
 #### 23.05.11
-- back-end : 코인 모의 구매/판매 요청 api 구현
+- back-end : 게시판 목록, 게시글 쓰기 / 읽기 / 삭제 api 구현
+- front-end : 게시판 목록, 게시글 쓰기 / 읽기 / 삭제 state hook 방식으로 재구현
 
 ## 💬 To Do List
 
 ### 수정해야 할 사항 목록
 - front-end : 평단가 표기
-- front-end : api 요청 완료시 페이시 새로고침
-- front-end : 게시판 페이지 react-router-dom 제거
-- back-end : 게시판 api 수정
+- front-end : api 요청 완료시 페이지 새로고침
+- front-end : 게시물 수정하기 react-router-dom 제거 및 state hook 방식으로 재구현
+- back-end : 게시판 수정하기 api 구현
 - back-end : 라우터 분리 및 js 파일 정리
 - 공통 : 코드 리팩토링
 

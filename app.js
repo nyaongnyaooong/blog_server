@@ -274,8 +274,8 @@ app.post("/board/post", async (req, res) => {
 // 게시글 put
 app.put("/board/put/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, content } = req.body;
-  const { userid } = req.user;
+  const { postSerial, title, content } = req.body;
+  const { serial } = req.user;
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
 
@@ -283,24 +283,28 @@ app.put("/board/put/:id", async (req, res) => {
   try {
     await mySQL.beginTransaction();
 
-    const [checkResult] = await mySQL.query(`SELECT author
+    // 게시글 작성자와 로그인한 유저가 동일한지 확인
+    const [resSQL1] = await mySQL.query(`SELECT user_serial
     FROM board
-    WHERE id='${id}'`);
-    const { author } = checkResult[0];
-    if (author !== userid) throw new Error('유저 정보 불일치');
+    WHERE board_serial=${postSerial}`);
 
-    const [putResult] = await mySQL.query(`UPDATE board
+    const { user_serial } = resSQL1[0];
+    if (serial !== user_serial) throw new Error('유저 정보 불일치');
+
+    // 게시물 수정
+    const [resSQL2] = await mySQL.query(`UPDATE board
     SET title='${title}', content='${content}'
-    WHERE id='${id}'`);
+    WHERE board_serial='${postSerial}'`);
 
     await mySQL.commit();
 
-    if (putResult.affectedRows) res.send({ result: true, error: false });
+    if (resSQL2.affectedRows) res.send({ result: true, error: false });
     else throw new Error('db 수정 실패');
 
   } catch (error) {
     // 400 bad request
     // 에러 세분화 필요
+    console.log(error)
     res.send({ result: false, error: error });
   } finally {
     mySQL.release();

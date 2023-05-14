@@ -308,15 +308,13 @@ const DetailPage = (props) => {
           amount: inputValue,
         },
       });
-
+      console.log(coin)
       if (response.data.error === '00') throw new Error('알 수 없는 오류 발생');
       if (response.data.error === '01') throw new Error('로그인 해주세요');
       if (response.data.error === '02') throw new Error('잔액이 부족합니다\n(구매전에는 충분했더라도 시장가가 변하여 부족해졌을 수 있습니다)');
 
       if(response.data.result) {
-        const refresh = ['KRW-ETH'];
-        console.log(refresh)
-        setCoinPage(['KRW-ETH']);
+        setCoinPage([coin]);
       }
     } catch (error) {
       alert(error.message);

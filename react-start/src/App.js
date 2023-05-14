@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { BrowserRouter } from 'react-router-dom';
 
 import './css/App.css';
 import './css/animation.css';
@@ -207,8 +206,8 @@ function App() {
   //   setLoading(false);
   // }, 900);
 
-  return (
-    <BrowserRouter basename={process.env.PUBLIC_URL}>
+  return userData ? (
+    <div>
       {/* <Loading active={loading} /> */}
 
       {/* background shadow animation */}
@@ -225,7 +224,7 @@ function App() {
         <div className="middleSection">
 
           {/* <!-- 네비게이션바 --> */}
-          {!userData ? <div></div> : <Nav btnList={navBtnList} btnAct={page} stateFuncs={stateFunctions} userData={userData} />}
+          <Nav btnList={navBtnList} btnAct={page} stateFuncs={stateFunctions} userData={userData} />
 
           {/* <!-- /네비게이션바 --> */}
 
@@ -250,7 +249,9 @@ function App() {
       {/* /Login & Register Form */}
 
       <div className="footer"></div>
-    </BrowserRouter >
+    </div>
+  ) : (
+    <Loading2 />
   );
 }
 

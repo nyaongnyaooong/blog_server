@@ -71,52 +71,30 @@ const BoardPostCreate = (props) => {
 
 //게시글 수정 페이지
 const BoardPostUpdate = (props) => {
-  const { serial } = props;
+  const { serial, postData } = props;
   const { setBoardPage } = props.stateFuncs;
+  console.log(postData);
 
-  let [postData, setPostData] = useState(null);
-  let [isUserMatch, setIsUserMatch] = useState(null);
-  let [title, setTitle] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/board/' + serial);
-        const { result, error } = response.data;
-        if (!result) throw new Error(error);
-
-        const { sqlData, userData } = result;
-
-        if (sqlData.user_serial !== userData.serial && userData.id !== 'admin') throw new Error('잘못된 접근입니다')
-
-        setIsUserMatch(true);
-        setPostData(sqlData);
-        setTitle(sqlData.title);
-
-      } catch (error) {
-        console.log(error);
-        alert(error.message);
-        setBoardPage('home');
-      }
-    };
-    fetchData();
-  }, [serial])
+  let [title, setTitle] = useState(postData.title);
+  let content = postData.content;
 
   // 발행 버튼 - 수정요청 함수
   const putPost = async () => {
     try {
-      const response = await axios.put('/board/put/' + serial,
-        {
+      const response = await axios.request({
+        method: 'put',
+        url: '/board/put/' + serial,
+        data: {
+          postSerial: serial,
           title: title,
-          content: postData.content,
-        }
-      );
+          content: content,
+        },
+      });
+      const { error } = response.data;
+      if (error) throw new Error(error);
 
-      const { result, error } = response.data;
-      if (result) {
+      setBoardPage('home')
 
-      }
-      else throw new Error(error);
     } catch (error) {
       console.log(error);
     }
@@ -124,25 +102,24 @@ const BoardPostUpdate = (props) => {
 
   return (
     <div className="content_box ani_fadeIn" id="board">
-      <form>
-        <div className='board_post_title'>
-          <input type="text" placeholder='제목' value={title} onChange={(event) => {
-            setTitle(event.target.value);
-          }} />
-        </div>
 
-        <div className='board_post_content'>
-          <CKEditor
-            editor={ClassicEditor}
-            data={postData.content}
-            onChange={(event, editor) => {
-              console.log(postData.content)
-              postData.content = editor.getData();
-            }}
-          />
-        </div>
-        <div className='board_post_complete'><button onClick={putPost}>발행</button></div>
-      </form>
+      <div className='board_post_title'>
+        <input type="text" placeholder='제목' value={title} onChange={(event) => {
+          setTitle(event.target.value);
+        }} />
+      </div>
+
+      <div className='board_post_content'>
+        <CKEditor
+          editor={ClassicEditor}
+          data={postData.content}
+          onChange={(event, editor) => {
+            content = editor.getData();
+          }}
+        />
+      </div>
+      <div className='board_post_complete'><button onClick={putPost}>발행</button></div>
+
     </div>
   )
 
@@ -151,13 +128,13 @@ const BoardPostUpdate = (props) => {
 // 게시판 글 읽는 페이지
 const BoardPostRead = (props) => {
   const { serial } = props;
+  const { setBoardPage, setPostNumber, setPostData } = props.stateFuncs
 
   let [boardData, setBoardData] = useState(null);
   let [isUserMatch, setIsUserMatch] = useState(false);
 
   //삭제 버튼 누르면 삭제 요청하는 함수
   const deletePost = async () => {
-    const { setBoardPage } = props.stateFuncs
 
     try {
       const response = await axios.delete('/board/delete/' + serial);
@@ -168,10 +145,6 @@ const BoardPostRead = (props) => {
       console.log(error);
     }
   };
-
-
-  //수정 버튼 누름
-
 
   // 게시물 데이터 get
   useEffect(() => {
@@ -186,6 +159,7 @@ const BoardPostRead = (props) => {
 
         if (sqlData.user_serial === userData.serial || userData.id === 'admin') setIsUserMatch(true);
         setBoardData(sqlData);
+        setPostData(sqlData);
       } catch (error) {
         console.log(error);
       }
@@ -199,7 +173,10 @@ const BoardPostRead = (props) => {
         <button onClick={() => {
           deletePost();
         }}>삭제</button>
-        <button onClick={() => { }}>수정</button>
+        <button onClick={() => {
+          setPostNumber(serial);
+          setBoardPage('update');
+        }}>수정</button>
         <div>{boardData.title}</div>
 
         {/* <div>{content}</div> */}
@@ -322,15 +299,18 @@ const BoardHome = (props) => {
 const Board = (props) => {
   const { stateFunctions } = props
   const [boardPage, setBoardPage] = useState('home');
-  const [postNumber, setPostNumber] = useState('home');
+  const [postNumber, setPostNumber] = useState(null);
+  const [postData, setPostData] = useState(null);
+
   const stateFuncs = {
     setBoardPage,
     setPostNumber,
+    setPostData,
   }
   if (boardPage === 'home') return <BoardHome stateFuncs={stateFuncs} />
-  if (boardPage === 'read') return <BoardPostRead serial={postNumber} stateFuncs={stateFuncs} />
+  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} />
   if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} stateFunctions={stateFunctions} />
-  if (boardPage === 'update') return <BoardPostUpdate serial={postNumber} stateFuncs={stateFuncs} />
+  if (boardPage === 'update') return <BoardPostUpdate postData={postData} serial={postNumber} stateFuncs={stateFuncs} />
   return <Loading2 />
 }
 

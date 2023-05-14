@@ -8,17 +8,18 @@
 
 ## 📄 세부 작업내역
 #### 23.05.11
-- back-end : 게시판 목록, 게시글 쓰기 / 읽기 / 삭제 api 구현
-- front-end : 게시판 목록, 게시글 쓰기 / 읽기 / 삭제 state hook 방식으로 재구현
+- back-end : 게시글 수정 api 구현
+- front-end : 게시글 수정 state hook 방식으로 재구현
+- front-end : api 요청 완료시 페이지 새로고침 (일부)
 
 ## 💬 To Do List
 
 ### 수정해야 할 사항 목록
+- 코인구매 버그 수정
 - front-end : 평단가 표기
 - front-end : api 요청 완료시 페이지 새로고침
-- front-end : 게시물 수정하기 react-router-dom 제거 및 state hook 방식으로 재구현
-- back-end : 게시판 수정하기 api 구현
 - back-end : 라우터 분리 및 js 파일 정리
+- html/css 꾸미기
 - 공통 : 코드 리팩토링
 
 ### 레포지토리 외적 할 일

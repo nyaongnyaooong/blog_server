@@ -30,9 +30,13 @@ const MainPage = (props) => {
     };
 
     // 초당 1회 정보 요청
-    setInterval(() => {
+    const timer = setInterval(() => {
       fetchData();
     }, 1000)
+
+    return () => {
+      clearInterval(timer);
+    };
   }, [])
 
   // thead 컴포넌트
@@ -44,7 +48,7 @@ const MainPage = (props) => {
           <th className='width200'>종목</th>
           <th className='width100'>기호</th>
           <th className='width100'>현재가</th>
-          <th className='width100'>전일대비</th>
+          <th className='width100'>전일대비<button>1</button></th>
           <th className='width150'>거래대금(24H)</th>
         </tr>
       </thead>
@@ -109,7 +113,7 @@ const MainPage = (props) => {
 
   //ticker 값이 들어오지않으면 Loading표시 
   return ticker ? (
-    <div className="app alignCenter ani_fadeIn">
+    <div className="appCoin alignCenter ani_fadeIn">
       <div>
         <h1>암호화폐 모의투자</h1>
       </div>
@@ -128,9 +132,10 @@ const DetailPage = (props) => {
   // coin: 어떤 코인의 디테일을 표시할 것인가?
   // stateFuncs: 뒤로 돌아가기용
   const coin = props.coin;
-  
-  const { marketName, stateFuncs, refresh } = props;
+
+  const { marketName, stateFuncs, refresh, stateFunctions } = props;
   const { setCoinPage, setAutoRefresh } = stateFuncs;
+  const { setLgnFrmAct, setBgDarkAct } = stateFunctions;
 
   const [series, setSeries] = useState(null);
   const [options, setOptions] = useState(null);
@@ -145,12 +150,27 @@ const DetailPage = (props) => {
 
   const Title = (props) => {
     const { data } = props;
+    const { opening_price, trade_price } = data;
+
+    let priceTag = null;
+    if (data.trade_price === data.opening_price) {
+      <span>{data.trade_price.toLocaleString('ko-KR')} (+0%)</span>
+    } else {
+      priceTag = data.trade_price > data.opening_price ?
+        <span className='colorRed'>
+          {data.trade_price.toLocaleString('ko-KR')} (+{Math.floor((trade_price - opening_price) / opening_price * 10000) / 100}%)
+        </span> :
+        <span className='colorBlue'>
+          {data.trade_price.toLocaleString('ko-KR')} ({Math.floor((trade_price - opening_price) / opening_price * 10000) / 100}%)
+        </span>;
+    }
 
     return (
       <div>
         <span>
-          {'[' + coin + '] ' + marketName + ' ' + data.trade_price.toLocaleString('ko-KR')}
+          {'[' + coin + '] ' + marketName + ' '}
         </span>
+        {priceTag}
       </div>
     );
   }
@@ -172,7 +192,7 @@ const DetailPage = (props) => {
         method: 'get',
         url: '/user/coin',
         params: {
-          market: coin,
+          market: coin[0],
         }
       });
 
@@ -180,6 +200,7 @@ const DetailPage = (props) => {
         const newUserCoinData = { ...userCoinData }
         newUserCoinData.balance = response.data.result.money;
         newUserCoinData.coinAmount = response.data.result.amount;
+        newUserCoinData.price = response.data.result.price;
 
         setUserCoinData(newUserCoinData);
 
@@ -290,14 +311,15 @@ const DetailPage = (props) => {
   const reqTrade = async (event, tradeType) => {
     event.preventDefault();
     let inputValue;
-    if(tradeType === 'buy') {
+    if (tradeType === 'buy') {
       inputValue = Number(event.target.buyAmount.value);
     } else if (tradeType === 'sell') {
       inputValue = Number(event.target.sellAmount.value);
     }
 
     try {
-      if (isNaN(inputValue)) throw new Error('숫자만 입력해주세요');
+      if (isNaN(inputValue)) throw new Error('03');
+      console.log(inputValue)
 
       const response = await axios.request({
         method: 'post',
@@ -308,16 +330,29 @@ const DetailPage = (props) => {
           amount: inputValue,
         },
       });
-      console.log(coin)
-      if (response.data.error === '00') throw new Error('알 수 없는 오류 발생');
-      if (response.data.error === '01') throw new Error('로그인 해주세요');
-      if (response.data.error === '02') throw new Error('잔액이 부족합니다\n(구매전에는 충분했더라도 시장가가 변하여 부족해졌을 수 있습니다)');
 
-      if(response.data.result) {
-        setCoinPage([coin]);
+      const { result, error } = response.data;
+
+      if (error) throw new Error(error);
+
+      if (result) {
+        setCoinPage([...coin]);
       }
     } catch (error) {
-      alert(error.message);
+      const code = error.message
+      if (code === '00') alert('알 수 없는 오류 발생');
+
+      if (code === '01') {
+        alert('로그인 해주세요');
+        setLgnFrmAct(true);
+        setBgDarkAct(true);
+      };
+
+      if (code === '02') alert('잔액이 부족합니다\n(구매전에는 충분했더라도 시장가가 변하여 부족해졌을 수 있습니다)');
+      if (code === '03') alert('숫자만 입력해주세요');
+
+
+
     }
   }
 
@@ -398,6 +433,31 @@ const DetailPage = (props) => {
             </div>
             <div className='desc-area'>
               <div className='text-area'>
+                <span>현재가</span>
+              </div>
+              <div className='input-area'>
+                <span>{ticker.trade_price}</span>
+              </div>
+            </div>
+            <div className='desc-area'>
+              <div className='text-area'>
+                <span>평단가</span>
+              </div>
+              <div className='input-area'>
+                {
+                  ticker.trade_price === userCoinData.price || userCoinData.price === 0 ?
+                    <span>{userCoinData.price}</span> :
+                    (
+                      ticker.trade_price > userCoinData.price ?
+                        <span className='colorBlue'>{userCoinData.price}</span> :
+                        <span className='colorRed'>{userCoinData.price}</span>
+                    )
+                }
+
+              </div>
+            </div>
+            <div className='desc-area'>
+              <div className='text-area'>
                 <span>판매 수량</span>
               </div>
               <div className='input-area'>
@@ -408,6 +468,7 @@ const DetailPage = (props) => {
                 }} value={inputs.sellAmount} />
               </div>
             </div>
+
             <div className='button-area'>
               <button className='bgColorBlue' name='reqSell'>판매하기</button>
             </div>
@@ -426,7 +487,9 @@ const DetailPage = (props) => {
 
 // 코인 페이지
 // coinPage 값에 따라 보여주는 페이지가 달라짐
-const Coin = () => {
+const Coin = (props) => {
+  const { stateFunctions } = props;
+
   const [coinPage, setCoinPage] = useState(['main']);
   const [marketName, setMarketName] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -439,7 +502,7 @@ const Coin = () => {
 
   if (coinPage[0] !== 'main') {
     return (
-      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} refresh={autoRefresh} />
+      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} stateFunctions={stateFunctions} refresh={autoRefresh} />
     );
   } else {
     return (

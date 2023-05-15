@@ -137,13 +137,15 @@ const MyPage = (props) => {
 }
 
 const Content = (props) => {
-  switch (props.page) {
+  const { page, stateFunctions } = props;
+
+  switch (page) {
     case 1:
       return <Blog />
     case 2:
-      return <Board stateFunctions={props.stateFunctions} />
+      return <Board stateFunctions={stateFunctions} />
     case 3:
-      return <Coin />
+      return <Coin stateFunctions={stateFunctions} />
     case 5:
       return <MyPage />
 

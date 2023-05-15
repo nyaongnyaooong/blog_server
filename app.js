@@ -457,7 +457,6 @@ app.get('/user/coin', (req, res, next) => {
 
     if (!result[0]) result.push({ amount: 0 });
 
-    console.log(result)
     result[0].money = result2[0].money;
     console.log(result)
 
@@ -509,34 +508,18 @@ app.post('/user/coin/trade', async (req, res) => {
   }
 
   const { market, amount } = req.body;
-
+  console.log(req.body)
   // 구매면 true 판매면 false
   let tradeType;
-  if (req.body.request === 'buy') tradeType = true;
-  else if (req.body.request === 'sell') tradeType = false;
-  else throw new Error('trade request error');
+
+  //요청한 코인의 현재가 확인
+  const coinData = getCoinData(gTicker, market);
+  const { trade_price } = coinData;
 
   try {
-    if (req.user.id === 'anonymous') throw new Error('user data null');
-
-    //요청한 코인의 현재가 확인
-    const coinData = getCoinData(gTicker, market);
-    const { trade_price } = coinData;
-
     await mySQL.beginTransaction();
 
-    if (tradeType) {
-      // 유저의 현금 불러오기
-      let [result1] = await mySQL.query(
-        `SELECT *
-          FROM user
-          WHERE user_serial=${req.user.serial}`
-      );
-
-      // 돈이 부족한지 확인
-      const userData = result1[0];
-      if (userData.money < amount * trade_price) throw new Error('not enough money')
-    }
+    if (req.user.id === 'anonymous') throw new Error('user data null');
 
     // 유저의 요청한 코인 보유 수량 불러오기
     let [result2] = await mySQL.query(
@@ -553,34 +536,43 @@ app.post('/user/coin/trade', async (req, res) => {
     userOwnData.price = Number(userOwnData.price);
     userOwnData.amount = Number(userOwnData.amount);
 
-    if (!tradeType) {
-      if (userOwnData.amount < amount) throw new Error('not enough coin');
-    }
+    if (req.body.request === 'buy') {
+      tradeType = true;
 
-    // 요청한 코인 수량 및 평단가 반영
-    if (tradeType) {
-      // 구매시
+      // 유저의 현금 불러오기
+      let [result1] = await mySQL.query(
+        `SELECT *
+                FROM user
+                WHERE user_serial=${req.user.serial}`
+      );
+
+      // 돈이 부족한지 확인
+      const userData = result1[0];
+      if (userData.money < amount * trade_price) throw new Error('not enough money')
+
+      // 요청한 코인 수량 및 평단가 반영
       userOwnData.price = (userOwnData.amount * userOwnData.price + trade_price * amount) / (userOwnData.amount + amount);
       userOwnData.amount = userOwnData.amount + amount;
-    } else {
-      // 판매시
-      userOwnData.price = userOwnData.amount !== amount ?
-        (userOwnData.amount * userOwnData.price - trade_price * amount) / (userOwnData.amount - amount) :
-        0;
-      userOwnData.amount = userOwnData.amount - amount;
-    }
 
-
-
-    if (tradeType) {
       // 현금 차감
       const [result3] = await mySQL.query(
         `UPDATE user
         SET money=money-${trade_price * amount}
         WHERE user_serial='${req.user.serial}'`
       );
-    } else {
-      // 현금 차감
+    }
+    else if (req.body.request === 'sell') {
+      tradeType = false;
+      if (userOwnData.amount < amount) throw new Error('not enough coin');
+
+      // 요청한 코인 수량 및 평단가 반영
+      userOwnData.price = userOwnData.amount !== amount ?
+        (userOwnData.amount * userOwnData.price - trade_price * amount) / (userOwnData.amount - amount) :
+        0;
+      userOwnData.amount = userOwnData.amount - amount;
+
+
+      // 현금 증액
       const [result3] = await mySQL.query(
         `UPDATE user
         SET money=money+${trade_price * amount}
@@ -588,19 +580,20 @@ app.post('/user/coin/trade', async (req, res) => {
       );
     }
 
+    else throw new Error('trade request error');
+
     // 보유 코인 수정
     if (userOwnData.coin_serial) {
       const [result4] = await mySQL.query(
         `UPDATE coin
         SET price=${userOwnData.price}, amount=${userOwnData.amount}
-        WHERE user_serial='${req.user.serial}'`
+        WHERE user_serial='${req.user.serial}' AND market='${market}'`
       )
     } else {
       const [result4] = await mySQL.query(
         `INSERT INTO coin(user_serial, market, price, amount)
         VALUES(${req.user.serial}, '${market}', ${userOwnData.price}, ${userOwnData.amount})`
       );
-
     }
 
     // 매매 히스토리 기록

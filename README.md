@@ -8,15 +8,12 @@
 
 ## 📄 세부 작업내역
 #### 23.05.11
-- back-end : 게시글 수정 api 구현
-- front-end : 게시글 수정 state hook 방식으로 재구현
-- front-end : api 요청 완료시 페이지 새로고침 (일부)
+- back-end : 코인구매 버그 수정
+- front-end : 평단가 표기
 
 ## 💬 To Do List
 
 ### 수정해야 할 사항 목록
-- 코인구매 버그 수정
-- front-end : 평단가 표기
 - front-end : api 요청 완료시 페이지 새로고침
 - back-end : 라우터 분리 및 js 파일 정리
 - html/css 꾸미기

@@ -27,7 +27,7 @@ html {
 body {
   width: 100%;
   height: 100%;
-  color: antiquewhite;
+  color: white;
   font-family: 'SCDream';
   background-color: rgb(41, 41, 41);
   margin: 0px;
@@ -173,6 +173,7 @@ ul {
 
 .login_form_title {
   margin: 0 auto;
+  color: #343a40;
   font-size: 20px;
   font-weight: 700;
 }

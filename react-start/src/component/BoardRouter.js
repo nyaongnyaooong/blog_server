@@ -131,9 +131,10 @@ const BoardPostRead = (props) => {
   const { setBoardPage, setPostNumber, setPostData } = props.stateFuncs
 
   let [boardData, setBoardData] = useState(null);
+  let [commentData, setCommentData] = useState(null);
   let [isUserMatch, setIsUserMatch] = useState(false);
 
-  //삭제 버튼 누르면 삭제 요청하는 함수
+  // 삭제 요청 함수
   const deletePost = async () => {
 
     try {
@@ -146,7 +147,23 @@ const BoardPostRead = (props) => {
     }
   };
 
-  // 게시물 데이터 get
+  // 댓글 요청 함수
+  const addComment = async (content) => {
+    try {
+      const response = await axios.request({
+        method: 'post',
+        url: '/comment/add',
+        data: {
+          content: content,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
+
+  }
+
+  // 게시물 데이터 요청
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -154,12 +171,13 @@ const BoardPostRead = (props) => {
         const { result, error } = response.data;
         if (!result) throw new Error(error);
 
-        const { sqlData, userData } = result;
+        const { boardData, commentData, userData } = result;
         console.log(result)
 
-        if (sqlData.user_serial === userData.serial || userData.id === 'admin') setIsUserMatch(true);
-        setBoardData(sqlData);
-        setPostData(sqlData);
+        if (boardData.user_serial === userData.serial || userData.id === 'admin') setIsUserMatch(true);
+        setBoardData(boardData);
+        setCommentData(commentData);
+        setPostData(boardData);
       } catch (error) {
         console.log(error);
       }
@@ -168,25 +186,69 @@ const BoardPostRead = (props) => {
   }, [serial]);
 
   if (boardData) {
-    return isUserMatch ? (
+    return (
       <div className='content_box'>
-        <button onClick={() => {
-          deletePost();
-        }}>삭제</button>
-        <button onClick={() => {
-          setPostNumber(serial);
-          setBoardPage('update');
-        }}>수정</button>
-        <div>{boardData.title}</div>
+        {
+          isUserMatch ? (
+            <div className='post-update'>
+              <button onClick={() => {
+                deletePost();
+              }}>삭제</button>
+              <button onClick={() => {
+                setPostNumber(serial);
+                setBoardPage('update');
+              }}>수정</button>
+            </div>
+          ) : (
+            <div />
+          )
+        }
 
-        {/* <div>{content}</div> */}
-        <div dangerouslySetInnerHTML={{ __html: boardData.content }}></div>
-      </div>
-    ) : (
-      <div className='content_box'>
-        <div>{boardData.title}</div>
-        {/* <div>{content}</div> */}
-        <div dangerouslySetInnerHTML={{ __html: boardData.content }}></div>
+        <div className='post-head'>
+          <div className='post-header'>
+            자유 게시판
+          </div>
+
+          <div className='post-title'>
+            <h3>
+              {boardData.title}
+            </h3>
+          </div>
+
+          <div className='post-id'>
+            {boardData.id}
+          </div>
+          <div className='post-url'>
+            http://www.dsfsklf
+          </div>
+        </div>
+
+        <div className='post-body'>
+          <div className='post-content'>
+            <div dangerouslySetInnerHTML={{ __html: boardData.content }}>
+            </div>
+          </div>
+        </div>
+
+        <div className='comment'>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            addComment(e.target.comment_content.value);
+          }}>
+            <div className='comment-list'>
+
+            </div>
+            <div className='comment-write'>
+              <textarea name='comment_content'>
+
+              </textarea>
+            </div>
+
+            <div className='comment-button'>
+              <button type='submit'>등록</button>
+            </div>
+          </form>
+        </div>
       </div>
     )
   } else return <Loading2 />

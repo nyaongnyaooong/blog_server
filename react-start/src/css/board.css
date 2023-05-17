@@ -11,7 +11,7 @@
   /* 크기고정 */
   table-layout: fixed;
   /* 내부 값이 줄바꿈을 하지 않음 */
-  white-space: nowrap; 
+  white-space: nowrap;
   font-size: 12px;
   color: white;
   letter-spacing: 1px;
@@ -102,7 +102,7 @@
 
 .board_post_complete button {
   color: white;
-  border: 0px solid ;
+  border: 0px solid;
   border-radius: 30px;
   cursor: pointer;
   font-size: 15px;
@@ -119,20 +119,20 @@
   /* 크기고정 */
   table-layout: fixed;
   /* 내부 값이 줄바꿈을 하지 않음 */
-  white-space: nowrap; 
+  white-space: nowrap;
   font-size: 12px;
   color: white;
   letter-spacing: 1px;
 }
 
-.table thead{
+.table thead {
   font-size: 14px;
   color: lightseagreen;
   /* 글자 사이 간격 */
   letter-spacing: 1px;
 }
 
-.table tbody{
+.table tbody {
   font-size: 12px;
   /* 글자 사이 간격 */
   letter-spacing: 1px;
@@ -187,4 +187,96 @@
 
 .width200 {
   width: 200px;
+}
+
+
+
+
+
+
+.post-head {
+  display: flex;
+  flex-direction: column;
+}
+
+.post-header {
+  font-size: 23px;
+  margin-bottom: 30px;
+}
+
+.post-title {
+  padding: 7px;
+  padding-top: 9px;
+  padding-bottom: 10px;
+  border-top: solid 2px steelblue;
+  border-bottom: solid 2px steelblue;
+}
+
+.post-title h3 {
+  font-size: 15px;
+}
+
+.post-id {
+  padding: 5px;
+  font-size: 14px;
+  color: black;
+  background-color: #7a8695;
+}
+
+.post-url {
+  padding: 5px;
+  font-size: 12px;
+  /* color: black; */
+  /* background-color: #7a8695; */
+}
+
+.post-body {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.post-content {
+  padding: 5px;
+  font-size: 14px;
+}
+
+.comment {
+
+}
+
+.comment-list {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.comment-write {}
+
+.comment-write textarea {
+  display: block;
+  width: 100%;
+  border: 3px solid #ededed;
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: 10px;
+  /* background-color: rgb(41, 41, 41); */
+  /* outline-color: steelblue; */
+  outline:none;
+  resize: none;
+}
+
+.comment-write textarea:focus {
+  border: 3px solid steelblue;
+}
+
+.comment-button {
+  text-align: right;
+}
+
+.comment-button button {
+  border: 0px;
+  padding: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
+  border-radius: 1px;
+  background-color: #7a8695;
 }

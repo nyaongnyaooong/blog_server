@@ -54,7 +54,6 @@ app.use('/', require(path.join(__dirname, './routes/coin.js')));
 // ---------------------------------------------------------
 
 
-
 let gMarket = null;
 let gTicker = null;
 const getTicker = async () => {
@@ -102,6 +101,19 @@ app.get('/coin/data', async (req, res) => {
     ticker: gTicker
   }
   res.send(resData);
+});
+
+app.get('/skill/data', async (req, res) => {
+  try {
+    const result = await axios.request({
+      method: 'get',
+      url: 'https://github.com/nyaongnyaooong/nyaongnyaooong',
+      responseType: 'blob'
+    });
+    res.send(result.data);
+  } catch (er) {
+    console.log(er)
+  }
 });
 
 
@@ -322,20 +334,23 @@ app.get('/board/:serial', async (req, res) => {
     await mySQL.beginTransaction();
 
     console.log('SQL Request - 게시글', serial, '번')
-    // const [putRes] = await mySQL.query(`UPDATE board
-    // SET view=view+1
-    // WHERE id='${serial}';`);
-    const [resSQL] = await mySQL.query(`SELECT user_serial, id, title, content, date 
+
+    const [resSQL1] = await mySQL.query(`SELECT *
     FROM board 
+    WHERE board_serial=${serial}`);
+
+    const [resSQL2] = await mySQL.query(`SELECT * 
+    FROM comment 
     WHERE board_serial=${serial}`);
 
     // await mySQL.commit();
 
-    if (!resSQL) throw new Error('db error')
+    if (!resSQL1) throw new Error('db error')
 
     const objectSend = {
       result: {
-        sqlData: resSQL[0],
+        boardData: resSQL1[0],
+        commentData: resSQL2,
         userData: userData,
       },
       error: false,

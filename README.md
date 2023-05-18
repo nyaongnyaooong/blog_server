@@ -9,19 +9,22 @@
 ## 📄 세부 작업내역
 #### 23.05.11
 - front-end : 게시판 html/css 꾸미기
+- front-end : 댓글 및 대댓글 구현
+- front-end : 마이페이지 html/css 수정
+- back-end : 댓글 및 대댓글 api 구현
 
 ## 💬 To Do List
 
 ### 수정 및 추가해야 할 작업 목록
+- front-end : 각 페이지 url 만들기
 - front-end : api 요청 완료시 페이지 새로고침
 - back-end : OAuth2 구현
 - back-end : 라우터 분리 및 js 파일 정리
-- back-end : 댓글 기능 구현
 - html/css 꾸미기
 - 공통 : 코드 리팩토링
 
 ### 레포지토리 외적 할 일
-- 블로그에 안드로이드 db 구축법 정리 및 포스팅 할 것
+
 
 ## ⌨️ 명령어
 

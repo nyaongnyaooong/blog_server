@@ -115,7 +115,14 @@ const BgDarker = (props) => {
 
 // 마이페이지
 const MyPage = (props) => {
+  const navList = ['userInfo', 'coinInfo'];
+
+  const [profilePage, setProfilePage] = useState(0);
   const [profileData, setProfileData] = useState(null)
+  const stateFuncs = {
+    setProfilePage,
+    setProfileData,
+  }
 
   // 유저정보 요청
   useEffect(() => {
@@ -129,54 +136,96 @@ const MyPage = (props) => {
     fetchData();
   }, [])
 
-  const chargeMoney = () => {
-    const fetchData = async () => {
-      const response = await axios.request({
-        method: 'post',
-        url: '/user/charge',
-      });
-      console.log(response)
 
-      if (response.data.result) {
-        const newProfile = { ...profileData };
-        newProfile.money = newProfile.money + 1000000;
-        newProfile.charge = newProfile.charge + 1;
-        setProfileData(newProfile);
+
+  // 유저정보 페이지
+  const UserInfo = (props) => {
+
+    const changePassword = async (current, change, check) => {
+      try {
+        if (change !== check) throw new Error('변경하려는 비밀번호와 재확인 비밀번호가 일치하지 않습니다');
+
+        const response = await axios.request({
+          method: 'put',
+          url: '/user/password/change',
+          data: {
+            current: current,
+            change, change,
+          }
+        });
+
+        // response.data.error()
+      } catch (error) {
+        alert(error.message);
       }
+
     }
-    fetchData();
+
+
+    return profileData ? (
+      <div className='mypage-content'>
+        <div className='userinfo-title'>
+          <h3>회원정보</h3>
+        </div>
+
+        <div className='userinfo-id'>
+          <h4>아이디</h4>
+          {profileData.id}
+        </div>
+
+        <div className='userinfo-password'>
+          <h4>비밀번호</h4>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            changePassword(e.target.currentPW.value, e.target.changePW.value, e.target.checkPW.value);
+          }}>
+            <div>
+              <input name='currentPW' type='password' placeholder='현재 비밀번호'></input>
+            </div>
+            <div>
+              <input name='changePW' type='password' placeholder='변경할 비밀번호'></input>
+            </div>
+            <div>
+              <input name='checkPW' type='password' placeholder='변경할 비밀번호 재입력'></input>
+            </div>
+
+            <div className='button'>
+              <button>변경</button>
+            </div>
+          </form>
+          <h4>탈퇴하기</h4>
+          <div className='button'>
+            <button>탈퇴하기</button>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <Loading2 />
+    )
   }
 
-  return profileData ? (
-    <div className='mypage-app'>
+  // 유저 코인 정보 페이지
+  const CoinInfo = () => {
+    const chargeMoney = () => {
+      const fetchData = async () => {
+        const response = await axios.request({
+          method: 'post',
+          url: '/user/charge',
+        });
+        console.log(response)
 
-      <div className='mypage-title'>
-        <h3>회원정보</h3>
-      </div>
+        if (response.data.result) {
+          const newProfile = { ...profileData };
+          newProfile.money = newProfile.money + 1000000;
+          newProfile.charge = newProfile.charge + 1;
+          setProfileData(newProfile);
+        }
+      }
+      fetchData();
+    }
 
-      <div className='mypage-id'>
-        <h4>아이디</h4>
-        {profileData.id}
-      </div>
-
-      <div className='mypage-password'>
-        <h4>비밀번호</h4>
-        <div>
-          <input placeholder='현재 비밀번호'></input>
-        </div>
-        <div>
-          <input placeholder='변경할 비밀번호'></input>
-        </div>
-        <div>
-          <input placeholder='비밀번호 재입력'></input>
-        </div>
-
-        <div>
-          <button>변경</button>
-        </div>
-      </div>
-
-      <div className='mypage-coin'>
+    return (
+      <div className='mypage-content'>
         <h4>모의코인 투자</h4>
         <span>잔액</span>
         {profileData.money}
@@ -186,35 +235,61 @@ const MyPage = (props) => {
           <button onClick={chargeMoney}>100만원 충전하기</button>
         </div>
       </div>
+    )
+  }
+
+  // 좌측 페이지 네이게이션 컴포넌트
+  const PageList = (props) => {
+    const { stateFuncs, navList } = props;
+    const { setProfilePage } = stateFuncs;
+
+    return (
+      <div className='mypage-pageList'>
+        <ul>
+          <a onClick={() => { setProfilePage(0); }}><li>회원정보</li></a>
+          <a onClick={() => { setProfilePage(1); }}><li>코인정보</li></a>
+        </ul>
+      </div>
+
+    )
+  }
+
+  // 마이페이지 표시 컴포넌트
+  const MyPageContent = (props) => {
+    const { page } = props
+    if (page === 1) return <CoinInfo />;
+
+    return <UserInfo />;
+  }
+
+
+  return (
+    <div className='content_box ani_fadeIn'>
+      <h2>마이페이지</h2>
+      <div className='mypage'>
+      <PageList navList={navList} stateFuncs={stateFuncs} />
+      <MyPageContent page={profilePage} stateFuncs={stateFuncs} />
+      </div>
+
     </div>
-  ) : (
-    <Loading2></Loading2>
-  );
+  )
+
 }
 
 const Content = (props) => {
-  const { page, stateFunctions } = props;
+  const { page, refreshPage, stateFunctions } = props;
 
-  switch (page) {
-    case 1:
-      return <Blog />
-    case 2:
-      return <Board stateFunctions={stateFunctions} />
-    case 3:
-      return <Coin stateFunctions={stateFunctions} />
-    case 5:
-      return <MyPage />
+  if (page === -1) {
+    if(refreshPage === -1) props.stateFunctions.setPage(0);
+    else props.stateFunctions.setPage(refreshPage);
+    props.stateFunctions.setRefreshPage(-1);
+  }
+  if (page === 1) return <Blog />
+  if (page === 2) return <Board stateFunctions={stateFunctions} />
+  if (page === 3) return <Coin stateFunctions={stateFunctions} />
+  if (page === 5) return <MyPage />
 
-    //   return <BoardPostCreate />
-    // case 4:
-    //   return <BoardPostRead />
-    // case 5:
-    //   return <BoardPostUpdate />
-    // case 6:
-
-    default:
-      return <Home />
-  };
+  return <Home />
 };
 
 function App() {
@@ -239,6 +314,7 @@ function App() {
   let [userData, setUserData] = useState(null);
 
   const [page, setPage] = useState(0);
+  const [refreshPage, setRefreshPage] = useState(0);
   // let [loading, setLoading] = useState(true);
 
   const stateFunctions = {
@@ -247,6 +323,7 @@ function App() {
     setBgDarkAct,
     setUserData,
     setPage,
+    setRefreshPage,
   };
 
   // 최초 랜더링 시 로그인 정보 검증
@@ -288,7 +365,7 @@ function App() {
 
           {/* <!-- Content --> */}
           <div className="content">
-            <Content page={page} stateFunctions={stateFunctions}></Content>
+            <Content page={page} refreshPage={refreshPage} stateFunctions={stateFunctions}></Content>
           </div>
           {/* <!-- /Content --> */}
 

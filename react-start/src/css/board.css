@@ -1,3 +1,23 @@
+.board-main {
+  
+}
+
+.board-main .button{
+  text-align: right;
+}
+
+.board-main .button button{
+  border: 0px;
+  padding: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-top: 3px;
+  margin-bottom: 3px;
+  background-color: steelblue;
+}
+
+
+
 /* blog, board 리스트 글자 크기 */
 .board_tbody_tr {
   cursor: pointer;
@@ -52,7 +72,7 @@
   /* width: 100%;; */
   /* align-items: center; */
   text-align: center;
-  margin: 0 auto;
+  /* margin: 0 auto; */
   padding: 10px;
 }
 
@@ -199,17 +219,12 @@
   flex-direction: column;
 }
 
-.post-header {
-  font-size: 23px;
-  margin-bottom: 30px;
-}
-
 .post-title {
   padding: 7px;
   padding-top: 9px;
   padding-bottom: 10px;
-  border-top: solid 2px steelblue;
-  border-bottom: solid 2px steelblue;
+
+  border-bottom: solid 1px steelblue;
 }
 
 .post-title h3 {
@@ -223,11 +238,31 @@
   background-color: #7a8695;
 }
 
+.post-urlUpdate {
+  display: flex;
+}
+
 .post-url {
+  flex: 3;
   padding: 5px;
   font-size: 12px;
   /* color: black; */
   /* background-color: #7a8695; */
+}
+
+.post-update {
+  flex: 1;
+  text-align: right;
+}
+
+.post-update button {
+  border: 0px;
+  border-radius: 3px;
+  background-color: #ededed;
+  padding: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin: 2px;
 }
 
 .post-body {
@@ -240,14 +275,113 @@
   font-size: 14px;
 }
 
-.comment {
 
-}
+
+
+
+.comment {}
+
+
+
+
 
 .comment-list {
   margin-top: 20px;
   margin-bottom: 20px;
 }
+
+.comment-item {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: #7a8695;
+  font-size: 12px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.comment-item-user {
+  padding: 3px;
+  font-size: 11px;
+  color: black;
+  font-weight: 600;
+}
+
+.comment-item-content {
+  padding: 2px;
+  padding-left: 3px;
+}
+
+.comment-item-etc {
+  display: flex;
+  flex-direction: row;
+}
+
+.comment-item-time {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* align-items: center; */
+  padding: 3px;
+}
+
+.comment-item-button {
+  flex: 1;
+  text-align: right;
+}
+
+.comment-item-button button {
+  border: 0px;
+  border-radius: 3px;
+  background-color: #ededed;
+  padding: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin: 5px;
+}
+
+.comment-reply-write {
+  padding: 5px;
+  display: flex;
+}
+
+.comment-reply-write .blank {
+  width: 5%;
+}
+
+.comment-reply-write form {
+  width: 95%;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-reply-write textarea {
+  display: block;
+  width: 100%;
+  border: 3px solid #ededed;
+  border-radius: 3px;
+  padding: 10px;
+  margin-bottom: 10px;
+  /* background-color: rgb(41, 41, 41); */
+  /* outline-color: steelblue; */
+  outline: none;
+  resize: none;
+}
+
+.comment-reply-item {
+  display: flex;
+  border-top: solid 1px black;
+}
+
+.comment-reply-item .blank{
+  width: 30px;
+}
+
+.comment-reply-item .comment-reply-item-content{
+  width: 100%
+}
+
+
 
 .comment-write {}
 
@@ -260,7 +394,7 @@
   margin-bottom: 10px;
   /* background-color: rgb(41, 41, 41); */
   /* outline-color: steelblue; */
-  outline:none;
+  outline: none;
   resize: none;
 }
 
@@ -278,5 +412,5 @@
   padding-left: 15px;
   padding-right: 15px;
   border-radius: 1px;
-  background-color: #7a8695;
+  background-color: steelblue;
 }

@@ -228,14 +228,17 @@ app.get("/board/data", async (req, res) => {
 
   try {
     await mySQL.beginTransaction();
-    let [resSQL] = await mySQL.query(`SELECT board_serial, user_serial, id, title, content, date 
+    let [resSQL] = await mySQL.query(`SELECT board_serial, user_serial, user_id, title, content, date 
     FROM board
     ORDER BY board_serial DESC
     `);
     // await mySQL.commit();
-    console.log(resSQL)
+
     res.send({
-      result: resSQL,
+      result: {
+        sqlData: resSQL,
+        userData: req.user,
+      },
       error: false,
     });
   } catch (error) {
@@ -404,6 +407,95 @@ app.delete('/board/delete/:serial', async (req, res) => {
 
 });
 
+
+
+
+app.post('/comment/add', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+  
+  try {
+    if(!req.user.serial) throw new Error('로그인 필요');
+
+    await mySQL.beginTransaction();
+
+    const [resSQL] = await mySQL.query(
+      `INSERT INTO comment(user_serial, user_id, board_serial, content, date, reply)
+      VALUES(${req.user.serial}, '${req.user.id}', '${req.body.serial}', '${req.body.content}', NOW(), ${req.body.reply})`
+    );
+
+    await mySQL.commit();
+
+    res.send({
+      result: {
+        sqlData: resSQL,
+        userData: req.user
+      },
+      error: false
+    })
+
+  } catch (error) {
+    await mySQL.rollback();
+    console.log(error)
+
+    res.send({
+      result: false,
+      error: error,
+    });
+
+  } finally {
+    mySQL.release();
+  }
+
+});
+
+
+
+app.delete('/comment/delete/:serial', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+  const reqCommentSerial = req.params.serial;
+  
+  try {
+    if(!req.user.serial) throw new Error('로그인 필요');
+
+    await mySQL.beginTransaction();
+
+    const [resSQL1] = await mySQL.query(`SELECT *
+    FROM comment 
+    WHERE comment_serial=${reqCommentSerial}`);
+
+    if(req.user.id !== 'admin' && resSQL1[0].user_serial !== req.user.serial) throw new Error('유저 불일치');
+
+    const [resSQL2] = await mySQL.query(`DELETE FROM comment 
+    WHERE comment_serial=${reqCommentSerial}`);
+
+    await mySQL.commit();
+    console.log('삭제')
+    res.send({
+      result: true,
+      error: false
+    })
+
+  } catch (error) {
+    await mySQL.rollback();
+    console.log(error)
+
+    res.send({
+      result: false,
+      error: error,
+    });
+
+  } finally {
+    mySQL.release();
+  }
+});
+
+
+
+
+
+
+
+
 // 유저 인증 정보
 app.get('/user/verify', (req, res) => {
   const userData = req.user.id;
@@ -453,18 +545,18 @@ app.get('/user/coin', (req, res, next) => {
 
   const { market } = req.query;
   console.log(market)
-  const mysql = await mySQLPool.getConnection(async conn => conn);
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
 
   try {
-    await mysql.beginTransaction();
+    await mySQL.beginTransaction();
 
-    const [result] = await mysql.query(
+    const [result] = await mySQL.query(
       `SELECT price, amount
       FROM coin
       WHERE market='${market}' AND user_serial=${req.user.serial}`
     );
 
-    const [result2] = await mysql.query(
+    const [result2] = await mySQL.query(
       `SELECT money
       FROM user
       WHERE user_serial=${req.user.serial}`
@@ -480,7 +572,7 @@ app.get('/user/coin', (req, res, next) => {
       error: false,
     });
   } catch (error) {
-    await mysql.rollback();
+    await mySQL.rollback();
     console.log(error)
 
     res.send({
@@ -489,7 +581,7 @@ app.get('/user/coin', (req, res, next) => {
     });
 
   } finally {
-    mysql.release();
+    mySQL.release();
   }
 
 });
@@ -504,7 +596,6 @@ app.get('/user/coin', (req, res, next) => {
 //   }
 //   res.send(resData);
 // });
-
 
 
 

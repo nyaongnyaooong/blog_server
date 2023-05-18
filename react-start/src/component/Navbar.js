@@ -2,7 +2,7 @@ import '../css/navbar.css'
 
 const Nav = (props) => {
   const { btnList, btnAct, stateFuncs, userData } = props;
-  const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage } = stateFuncs;
+  const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage, setRefreshPage } = stateFuncs;
 
   //left section (로고, 이름)
   const BtnLeftSect = () => {
@@ -18,14 +18,17 @@ const Nav = (props) => {
   //middle section (navigate buttons)
   const BtnMidSect = () => {
     const btnArray = [];
-    for (let i = 1; i < btnList.length-1; i++) {
+    for (let i = 1; i < btnList.length - 1; i++) {
       const btnName = btnList[i];
       let btnClass = "btn_nav_page ";
 
       (i === btnAct) ? btnClass += "nav_btn_active" : btnClass += "nav_btn_deactive";
       btnArray.push(
         <li key={i}>
-          <button className={btnClass} onClick={() => { setPage(i); }}>
+          <button className={btnClass} onClick={() => {
+            setRefreshPage(i);
+            setPage(-1);
+          }}>
             {btnName}
           </button>
         </li>
@@ -40,7 +43,7 @@ const Nav = (props) => {
       return (
         <div className="nav_r_section">
           <button className="btn_login_section" onClick={() => {
-            setPage(btnList.length-1);
+            setPage(btnList.length - 1);
           }}>{userData}</button>
           <button className="btn_login_section" onClick={() => {
             document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';

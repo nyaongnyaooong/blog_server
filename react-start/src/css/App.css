@@ -149,6 +149,13 @@ ul {
   /* padding-top: 60px; */
 }
 
+.content_box h2 {
+  font-size: 23px;
+  border-bottom: 1px solid steelblue;
+  padding: 20px;
+  padding-left: 10px;
+}
+
 .login_box {
   position: absolute;
   background-color: cornflowerblue;
@@ -339,63 +346,50 @@ ul {
 }
 
 /* 마이페이지 */
-.mypage-app {
-  width: 50%;
+.mypage {
+  width: 100%;
   display: flex;
-  align-items: center;
-  flex-direction: column;
+  padding: 50px;
+  /* align-items: center; */
+  /* flex-direction: column; */
 }
 
-.mypage-app span {
-  font-size: 14px;
+
+.mypage h4{
+  margin-top: 30px;
 }
 
-.mypage-app button {
-  margin: 0 auto;
-  width: 150px;
+.mypage button {
+  padding: 3px;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: steelblue;
   border: 0px;
-  border-radius: 4px;
-  background-color: lightsteelblue;
-  padding: 7px;
-  font-weight: 700;
-  color: antiquewhite;
 }
 
-.mypage-title {
+
+
+.mypage-pageList {
+  width: 250px;
+}
+
+.mypage-content {
   width: 100%;
-  margin-top: 50px;
 }
 
-.mypage-id {
-  width: 100%;
-  margin-top: 50px;
-}
-
-.mypage-password {
-  display: flex;
-  margin-top: 50px;
-  width: 100%;
-  flex-direction: column;
-}
-
-.mypage-password input {
-  margin-top: 10px;
+.userinfo-password input {
+  padding: 3px;
   width: 50%;
+  margin-top: 5px
 }
 
-.mypage-coin {
-  display: flex;
-  margin-top: 50px;
-  width: 100%;
-  flex-direction: column;
-
+.userinfo-password .button {
+  /* padding: 3px; */
+  width: 50%;
+  text-align: right;
 }
-
-.mypage-block {
-  height: 50px;
-}
-
-
 
 
 

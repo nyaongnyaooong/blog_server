@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import cookie from 'react-cookies';
 
 import './css/App.css';
 import './css/animation.css';
@@ -12,8 +13,9 @@ import axios from 'axios';
 
 // 메인 소개 페이지
 const Home = () => {
-
+  console.log(window.location.href)
   const [skill, setSkill] = useState(null);
+  console.log(cookie.load('navigate'));
 
   useEffect(() => {
     const fetchData = async () => {

@@ -76,7 +76,7 @@ const Nav = (props) => {
       {/* Navigationbar left section */}
       <div className="nav_l_section">
         <div className="divMark" >
-          <img src="http://localhost:3000/68260365.png" alt=""></img>
+          <img src="/68260365.png" alt=""></img>
         </div>
         <BtnLeftSect></BtnLeftSect>
       </div>

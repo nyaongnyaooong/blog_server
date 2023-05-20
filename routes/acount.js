@@ -106,7 +106,6 @@ router.post('/register/post', async (req, res) => {
   const { regID, regPW } = req.body;
   const mySQL = await mySQLPool.getConnection(async conn => conn);
 
-
   try {
     // 중복 ID 검사
     const [dupResult] = await mySQL.query(`SELECT user_serial 

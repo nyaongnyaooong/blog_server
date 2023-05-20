@@ -95,6 +95,10 @@ const getTicker = async () => {
 }
 getTicker();
 
+app.get('/domain', (req, res) => {
+  res.send(process.env.DOMAIN);
+})
+
 app.get('/coin/data', async (req, res) => {
   const resData = {
     market: gMarket,
@@ -187,6 +191,18 @@ app.use((req, res, next) => {
 
 
 
+
+
+
+
+
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+})
+
+
+
 // 금액 충전
 app.post('/user/charge', async (req, res) => {
   const mySQL = await mySQLPool.getConnection(async conn => conn);
@@ -228,7 +244,7 @@ app.get("/board/data", async (req, res) => {
 
   try {
     await mySQL.beginTransaction();
-    let [resSQL] = await mySQL.query(`SELECT board_serial, user_serial, user_id, title, content, date 
+    const [resSQL] = await mySQL.query(`SELECT board_serial, user_serial, user_id, title, content, date 
     FROM board
     ORDER BY board_serial DESC
     `);
@@ -412,9 +428,9 @@ app.delete('/board/delete/:serial', async (req, res) => {
 
 app.post('/comment/add', async (req, res) => {
   const mySQL = await mySQLPool.getConnection(async conn => conn);
-  
+
   try {
-    if(!req.user.serial) throw new Error('로그인 필요');
+    if (!req.user.serial) throw new Error('로그인 필요');
 
     await mySQL.beginTransaction();
 
@@ -448,14 +464,112 @@ app.post('/comment/add', async (req, res) => {
 
 });
 
+// 구글 로그인 창 표시
+app.get('/login/google', (req, res) => {
+  const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
+
+  const GOOGLE_OAUTH_URI = 'https://accounts.google.com/o/oauth2/v2/auth';
+  const queryClientID = '?client_id=' + GOOGLE_CLIENT_ID;
+  const queryRedirectURI = '&redirect_uri=' + GOOGLE_REDIRECT_URI;
+  const queryResponseType = '&response_type=code';
+  const queryScope = '&scope=email profile';
+
+  res.redirect(GOOGLE_OAUTH_URI + queryClientID + queryRedirectURI + queryResponseType + queryScope);
+})
+
+// code를 얻어 google api에 token 요청 후 token으로 사용자 정보 재요청
+app.get('/google/redirect', async (req, res) => {
+  // code
+  const { code } = req.query;
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = process.env;
+
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
+  try {
+    // code 발급이 정상적으로 되지 않았을 경우
+    if (!code) throw new Error('google code error');
+
+    const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+    // token요청
+    const res1 = await axios.post(GOOGLE_TOKEN_URL, {
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      code: code,
+      redirect_uri: GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    });
+    const token = res1.data.access_token;
+    // 토큰 발급이 정상적으로 되지 않았을 경우
+    if (!token) throw new Error('google token error');
+
+    // 사용자 정보 요청
+    const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
+    const res2 = await axios.get(GOOGLE_USERINFO_URL, {
+      headers: {
+        Authorization: 'Bearer' + token,
+      },
+    });
+    console.log(res2.data);
+    // 사용자 정보를 불러오는데 실패
+    if (!res2.data) throw new Error('fail to load google userinfo');
+    const id = 'google-' + res2.data.id;
+
+    // 가입되어있는 id인지 검사
+    let [resSQL1] = await mySQL.query(`SELECT user_serial 
+      FROM user
+      WHERE id='${id}'`);
+
+    if (!resSQL1.length) {
+      //미가입
+      const [resSQL2] = await mySQL.query(`INSERT INTO user(id) 
+      VALUES('${id}')`);
+
+      [resSQL1] = await mySQL.query(`SELECT user_serial 
+      FROM user
+      WHERE id='${id}'`);
+    }
+    const { user_serial } = resSQL1[0];
+
+    const payload = {
+      serial: user_serial,
+      userid: id,
+      exp: '추가예정'
+    };
+
+    //JWT 생성
+    const jwtToken = jwt.createToken(payload);
+
+    console.log('토큰', jwtToken)
+    // 생성한 토큰을 쿠키로 만들어서 브라우저에게 전달
+    res.cookie('accessToken', jwtToken, {
+      path: '/',
+      HttpOnly: true
+    });
+
+    await mySQL.commit();
+
+    res.redirect('http://localhost:3000/');
+  } catch (error) {
+    console.log(error)
+    await mySQL.rollback();
+
+    res.send({
+      result: false,
+      error: error
+    });
+  } finally {
+    mySQL.release();
+  }
+
+})
 
 
 app.delete('/comment/delete/:serial', async (req, res) => {
   const mySQL = await mySQLPool.getConnection(async conn => conn);
   const reqCommentSerial = req.params.serial;
-  
+
   try {
-    if(!req.user.serial) throw new Error('로그인 필요');
+    if (!req.user.serial) throw new Error('로그인 필요');
 
     await mySQL.beginTransaction();
 
@@ -463,7 +577,7 @@ app.delete('/comment/delete/:serial', async (req, res) => {
     FROM comment 
     WHERE comment_serial=${reqCommentSerial}`);
 
-    if(req.user.id !== 'admin' && resSQL1[0].user_serial !== req.user.serial) throw new Error('유저 불일치');
+    if (req.user.id !== 'admin' && resSQL1[0].user_serial !== req.user.serial) throw new Error('유저 불일치');
 
     const [resSQL2] = await mySQL.query(`DELETE FROM comment 
     WHERE comment_serial=${reqCommentSerial}`);
@@ -735,28 +849,18 @@ app.post('/user/coin/trade', async (req, res) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-//admin 페이지
-app.get('/:htmlFileName', async (req, res, next) => {
-  try {
-    const { htmlFileName } = req.params;
-    const htmlFileFullDir = __dirname + '/public/' + htmlFileName + '.html';
-    res.sendFile(htmlFileFullDir);
-  } catch (err) {
-    console.error(err);
-  }
-
+app.get('/board', (req, res) => {
+  res.cookie('navigate', '1243', {
+    path: '/',
+  });
+  res.sendFile(path.join(__dirname, '/public/index.html'));
 });
+
+
+
+
+
+
 
 
 

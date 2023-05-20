@@ -48,7 +48,7 @@ const MainPage = (props) => {
           <th className='width200'>종목</th>
           <th className='width100'>기호</th>
           <th className='width100'>현재가</th>
-          <th className='width100'>전일대비<button>1</button></th>
+          <th className='width100'>전일대비</th>
           <th className='width150'>거래대금(24H)</th>
         </tr>
       </thead>

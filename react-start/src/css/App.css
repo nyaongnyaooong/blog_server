@@ -75,6 +75,7 @@ ul {
 
 
 .zhide {
+  display: hidden;
   z-index: -1;
 }
 
@@ -109,6 +110,8 @@ ul {
 
 .middleSection {
   flex: 5;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 90vh;
   background-color: rgb(41, 41, 41);
@@ -122,6 +125,7 @@ ul {
 
 .content {
   display: flex;
+  flex-direction: column;
   /* align-items: center; */
   justify-content: center;
 

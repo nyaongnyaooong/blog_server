@@ -49,6 +49,17 @@ const DivLineGroup = (props) => {
   )
 }
 
+const ErrorMessage = (props) => {
+  const { message } = props;
+
+  return (
+    <span className="wrong_form ani_fadeOut">
+      {/* 로그인 요청에 문제 발생시 여기에 메세지 표시 */}
+      {message}
+    </span>
+  );
+}
+
 const LogInForm = (props) => {
   const { active, stateFuncs } = props;
   const { setLgnFrmAct, setBgDarkAct, setUserData } = stateFuncs;
@@ -57,9 +68,10 @@ const LogInForm = (props) => {
 
 
 
-  let [inputID, setInputID] = useState('');
-  let [inputPW, setInputPW] = useState('');
-  let [message, setMessage] = useState('');
+  const [inputID, setInputID] = useState('');
+  const [inputPW, setInputPW] = useState('');
+  const [message, setMessage] = useState('');
+  const [loginActive, setLoginActive] = useState(true);
 
 
   const redirectGoogleLogin = async () => {
@@ -71,18 +83,27 @@ const LogInForm = (props) => {
 
       if (response.data) window.location.assign(response.data + '/login/google');
     } catch (error) {
- 
+
     }
   }
 
   const reqLogIn = async (e) => {
     e.preventDefault();
+    if(!loginActive) return
+    setLoginActive(false);
+    setTimeout(() => {
+      setLoginActive(true);
+    }, 1600)
     const reqObject = {
       loginID: inputID,
       loginPW: inputPW
     }
     try {
+      if (!inputID) throw new Error('아이디를 입력해주세요');
+      if (!inputPW) throw new Error('패스워드를 입력해주세요');
       const response = await axios.post('/login/post', reqObject);
+      if (response.data.error) throw new Error(response.data.error);
+
       if (response.data.result) {
         setLgnFrmAct(false);
         setBgDarkAct(false);
@@ -94,7 +115,10 @@ const LogInForm = (props) => {
 
     } catch (err) {
       console.log(err);
-      setMessage('에러');
+      setMessage(err.message);
+      setTimeout(() => {
+        setMessage('');
+      }, 1500)
     }
   }
 
@@ -110,10 +134,10 @@ const LogInForm = (props) => {
         </FormGroup>
 
         <FormGroup>
-          <span className="wrong_form">
-            {/* 로그인 요청에 문제 발생시 여기에 메세지 표시 */}
-            {message}
-          </span>
+          {
+            message ? <ErrorMessage message={message} /> : <></>
+          }
+
         </FormGroup>
 
         <FormGroup>

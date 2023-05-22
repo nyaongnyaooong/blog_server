@@ -276,7 +276,7 @@ app.post("/board/post", async (req, res) => {
     if (!serial) throw new Error('유저 로그인 정보가 없습니다');
     await mySQL.beginTransaction();
 
-    const [result] = await mySQL.query(`INSERT INTO board(user_serial, id, title, content, date)
+    const [result] = await mySQL.query(`INSERT INTO board(user_serial, user_id, title, content, date)
     VALUES(${serial}, '${id}', '${title}', '${content}', NOW())`);
 
     await mySQL.commit();
@@ -463,6 +463,65 @@ app.post('/comment/add', async (req, res) => {
   }
 
 });
+
+app.put('/comment/put', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection(async conn => conn);
+
+  try {
+    if (!req.user.serial) throw new Error('로그인 필요');
+
+    await mySQL.beginTransaction();
+
+    const reqSerial = req.body.serial;
+    const reqcontent = req.body.content;
+    const [resSQL] = await mySQL.query(
+      `UPDATE comment
+      SET content=${reqcontent}
+      WHERE comment_serial=${reqSerial}`
+    )
+
+    await mySQL.commit();
+
+    res.send({
+      result: {
+        sqlData: resSQL,
+        userData: req.user
+      },
+      error: false
+    })
+
+  } catch (error) {
+    await mySQL.rollback();
+    console.log(error)
+
+    res.send({
+      result: false,
+      error: error,
+    });
+
+  } finally {
+    mySQL.release();
+  }
+
+
+
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // 구글 로그인 창 표시
 app.get('/login/google', (req, res) => {

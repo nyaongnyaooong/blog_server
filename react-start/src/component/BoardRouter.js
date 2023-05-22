@@ -1,3 +1,5 @@
+// eslint-disable-next-line
+
 import '../css/board.css'
 import axios from 'axios';
 import { useState, useEffect } from 'react';
@@ -134,6 +136,7 @@ const BoardPostRead = (props) => {
   const [commentData, setCommentData] = useState(null);
   const [userData, setUserData] = useState(null);
   const [replyActive, setReplyActive] = useState([]);
+  const [putReplyActive, setPutReplyActive] = useState([]);
 
   const [isUserMatch, setIsUserMatch] = useState(false);
 
@@ -172,7 +175,7 @@ const BoardPostRead = (props) => {
           user_id: userData.id,
           board_serial: serial,
           content: content,
-          date: '방금전',
+          date: '방금 전',
           reply: reply
         })
         setCommentData(newCommentData);
@@ -183,7 +186,7 @@ const BoardPostRead = (props) => {
       console.log(error);
     }
 
-  }
+  };
 
   // 댓글 삭제 요청 함수
   const delComment = async (comment_serial) => {
@@ -207,7 +210,26 @@ const BoardPostRead = (props) => {
       console.log(error);
     }
 
-  }
+  };
+
+  // 댓글 수정 요청 함수
+  const putComment = async (content, serial) => {
+    try {
+      const response = await axios.request({
+        method: 'put',
+        url: 'comment/put',
+        data: {
+          serial,
+          content,
+        },
+      });
+      console.log(response)
+      setPutReplyActive()
+
+    } catch (error) {
+      console.log(putComment())
+    }
+  };
 
   // 게시물 데이터 요청
   useEffect(() => {
@@ -228,6 +250,7 @@ const BoardPostRead = (props) => {
 
         const initReplyActive = new Array(commentData.length).fill(false);
         setReplyActive(initReplyActive);
+        putReplyActive(initReplyActive);
       } catch (error) {
         console.log(error);
       }
@@ -251,9 +274,32 @@ const BoardPostRead = (props) => {
     // 댓글 리스트 html 작성
     const commentList = arrComment.map((e, i) => {
       const { comment_serial, user_serial, user_id, content, date } = e;
+      // mysql의 UTC 를 KST로 변환
+
+      let dateKST_String;
+      if (date === '방금 전') {
+        dateKST_String = date;
+      } else {
+        const dateKST = new Date(date)
+        dateKST.setHours(dateKST.getHours() + 9);
+        dateKST_String = dateKST.toLocaleString();
+      }
+
+
       // 각 댓글에 대댓글이 있는지 확인하여 대댓글 html작성
       const replyList = arrReply.map((f, j) => {
         const { reply } = f;
+
+        // mysql의 UTC 를 KST로 변환
+        let reply_dateKST_String;
+        if (date === '방금 전') {
+          reply_dateKST_String = f.date;
+        } else {
+          const reply_dateKST = new Date(f.date)
+          reply_dateKST.setHours(reply_dateKST.getHours() + 9);
+          reply_dateKST_String = reply_dateKST.toLocaleString();
+        }
+
         if (reply === comment_serial) {
           return (
             <div key={j} className='comment-reply-item'>
@@ -268,13 +314,15 @@ const BoardPostRead = (props) => {
                 <div className='comment-item-etc'>
                   <div className='comment-item-time'>
                     <div>
-                      <span>{f.date}</span>
+                      <span>{reply_dateKST_String}</span>
                     </div>
                   </div>
                   {
                     userData.serial === f.user_serial ? (
                       <div className='comment-item-button'>
-                        <button>수정</button>
+                        {/* <button onClick={() => {
+                          setPutReplyActive([comment_serial])
+                        }}>수정</button> */}
 
                         <button onClick={async () => {
                           delComment(comment_serial);
@@ -303,13 +351,15 @@ const BoardPostRead = (props) => {
           </div>
           <div className='comment-item-etc'>
             <div className='comment-item-time'>
-              <span>{date}</span>
+              <span>{dateKST_String}</span>
             </div>
             {
               // 댓글 주인과 로그인 유저가 같으면 수정 삭제버튼 추가
               userData.serial === user_serial ? (
                 <div className='comment-item-button'>
-                  <button>수정</button>
+                  {/* <button onClick={() => {
+                    setPutReplyActive([comment_serial])
+                  }}>수정</button> */}
 
                   <button onClick={() => {
                     delComment(comment_serial);
@@ -356,7 +406,6 @@ const BoardPostRead = (props) => {
               </div>
             ) : (<div style={{ display: 'hidden' }} />)
           }
-
           {/* 대댓글이 있으면 표시 */}
           <div className='comment-reply-List'>
             {replyList}
@@ -386,7 +435,7 @@ const BoardPostRead = (props) => {
 
           <div className='post-urlUpdate'>
             <div className='post-url'>
-              http://www.dsfsklf
+              <a href={window.location.origin + '/board?serial=' + serial}>{window.location.origin + '/board?serial=' + serial}</a>
             </div>
             {
               isUserMatch ? (
@@ -475,7 +524,6 @@ const BoardHome = (props) => {
   //게시판 표 내용 컴포넌트
   const TableCell = (props) => {
     const { setPostNumber, setBoardPage } = props.stateFuncs;
-    console.log(props);
     let [fullCreatedDate] = props.date.split("T");
 
     return (
@@ -554,10 +602,20 @@ const BoardHome = (props) => {
 
 // 게시판 메인 컴포넌트
 const Board = (props) => {
-  const { stateFunctions } = props
-  const [boardPage, setBoardPage] = useState('home');
-  const [postNumber, setPostNumber] = useState(null);
+  const { stateFunctions, serial } = props
+  const { setPageSerial } = stateFunctions;
+  let initPage = 'home';
+  console.log(serial)
+  if (serial) {
+    initPage = 'read';
+    setPageSerial(null)
+  }
+
+
+  const [boardPage, setBoardPage] = useState(initPage);
+  const [postNumber, setPostNumber] = useState(serial);
   const [postData, setPostData] = useState(null);
+
 
   const stateFuncs = {
     setBoardPage,

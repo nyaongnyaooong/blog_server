@@ -113,7 +113,7 @@ const MainPage = (props) => {
 
   //ticker 값이 들어오지않으면 Loading표시 
   return ticker ? (
-    <div className="appCoin alignCenter ani_fadeIn">
+    <div className="content_box coin-main ani_fadeIn">
       <div>
         <h1>암호화폐 모의투자</h1>
       </div>
@@ -265,7 +265,7 @@ const DetailPage = (props) => {
               easing: 'linear',
               speed: 1300,
             },
-            height: 350
+            height: 350,
           },
           title: {
             align: 'left'
@@ -357,7 +357,7 @@ const DetailPage = (props) => {
   }
 
   return series && options && ticker ? (
-    <div className='app'>
+    <div className='content_box coin-datail'>
 
       <div className='coin-title'>
         <div className='text-area'>
@@ -378,8 +378,8 @@ const DetailPage = (props) => {
         </div>
       </div>
 
-      <div id="chart">
-        <ReactApexChart options={options} series={series} type="candlestick" height={300} width={600} />
+      <div id="coin-chart">
+        <ReactApexChart options={options} series={series} type="candlestick" height={300} width={'100%'} />
       </div>
 
       <div className='trade'>

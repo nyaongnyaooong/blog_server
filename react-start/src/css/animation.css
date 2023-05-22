@@ -72,7 +72,8 @@
 .ani_fadeOut {
   /* position: absolute; */
   /* z-index: 12; */
-  animation: fadeOut 1s;
+  animation: fadeOut 1500ms;
+  animation-fill-mode: forwards;
 }
 
 .ani_fadeInUp {

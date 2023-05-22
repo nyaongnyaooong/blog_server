@@ -45,6 +45,10 @@ router.post('/login/post', async (req, res) => {
 
   console.log('로그인 요청', req.body)
   try {
+    if(!loginPW) throw new Error('no password')
+    if(!loginID) throw new Error('no id')
+
+
     // db에서 요청한 ID에 해당하는 data 가져옴
     // const dbResult = await db.collection('user').findOne({ name: loginID });
     const [dbResult] = await mySQL.query(`SELECT *
@@ -53,12 +57,12 @@ router.post('/login/post', async (req, res) => {
     `);
     await mySQL.commit();
 
-    if (!dbResult.length) throw new Error('일치하는 아이디가 존재하지 않음');
+    if (!dbResult.length) throw new Error('01');
     const { user_serial, id, salt, hash } = dbResult[0];
 
     // 로그인 요청한 PW 해시화
     const { key } = hashPW(loginPW, salt);
-    if (key != hash) throw new Error('비밀번호 틀림');
+    if (key != hash) throw new Error('02');
 
     // payload
     const payload = {
@@ -86,14 +90,17 @@ router.post('/login/post', async (req, res) => {
   } catch (err) {
     await mySQL.rollback();
 
-    console.log(err)
-    console.log(typeof (err))
-    console.log(err.name)
-    console.log(err.message)
+    console.log(err.name);
+    console.log(err.message);
     console.log('stack', err.stack);
+    
+    let errorMessage = '알 수 없는 에러입니다';
+    if (err.message === '01') errorMessage = '아이디가 존재하지 않습니다';
+    if (err.message === '02') errorMessage = '패스워드를 확인해 주세요';
+
     const resResult = {
       result: false,
-      error: err,
+      error: errorMessage,
     };
     res.send(resResult);
   }

@@ -4,7 +4,7 @@ const path = require('path');
 // const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const { mySQLPool, AtlasDB } = require('../modules/db')
-
+const jwt = require(path.join(__dirname, '../modules/jwt'));
 
 //dotenv
 require('dotenv').config();
@@ -33,7 +33,7 @@ MongoClient.connect(dbURL, (err, result) => {
   db = result.db('project1');
 });
 
-const jwt = require(path.join(__dirname, '../modules/jwt'));
+
 
 
 

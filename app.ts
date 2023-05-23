@@ -6,11 +6,12 @@ import methodOverride from 'method-override';
 import axios from 'axios';
 import cookieParser from 'cookie-parser';
 
+import path from 'path';
+import fs from 'fs';
+
 const app = express();
 app.set('port', 8080);
 
-const path = require('path');
-const fs = require('fs');
 
 //dotenv
 dotenv.config();
@@ -73,7 +74,8 @@ type Ticker = {
 }
 const gMarket: Market[] = [];
 let gTicker: Ticker[] = [];
-const getTicker = async () => {
+
+const getTicker: () => void = async () => {
   try {
     const res1 = await axios.request({
       method: 'get',
@@ -92,7 +94,7 @@ const getTicker = async () => {
         krwMrkStr += krwMrkStr ? ', ' + elm.market : elm.market;
       }
     });
-
+    throw new Error('123')
     setInterval(async () => {
       const res2 = await axios.request({
         method: 'get',
@@ -105,7 +107,21 @@ const getTicker = async () => {
     }, 1000);
 
   } catch (error) {
-
+    console.log(error)
   }
 }
 getTicker();
+
+app.get('/coin/data', async (req, res) => {
+  const resData = {
+    market: gMarket,
+    ticker: gTicker
+  }
+  res.send(resData);
+});
+
+
+
+app.get('/domain', (req, res) => {
+  res.send(process.env.DOMAIN);
+})

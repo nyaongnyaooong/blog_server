@@ -99,32 +99,6 @@ app.get('/domain', (req, res) => {
   res.send(process.env.DOMAIN);
 })
 
-app.get('/coin/data', async (req, res) => {
-  const resData = {
-    market: gMarket,
-    ticker: gTicker
-  }
-  res.send(resData);
-});
-
-app.get('/skill/data', async (req, res) => {
-  try {
-    const result = await axios.request({
-      method: 'get',
-      url: 'https://github.com/nyaongnyaooong/nyaongnyaooong',
-      responseType: 'blob'
-    });
-    res.send(result.data);
-  } catch (er) {
-    console.log(er)
-  }
-});
-
-
-
-
-
-
 
 
 

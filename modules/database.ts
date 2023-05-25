@@ -1,4 +1,8 @@
-import mysql from 'mysql2/promise';
+import mysql, { RowDataPacket } from 'mysql2/promise';
+import dotenv from 'dotenv';
+
+// dotenv
+dotenv.config();
 
 //MongoDB Atlas Setting
 // const dbURL = 'mongodb+srv://' + process.env.DB_ID + ':' + process.env.DB_PW + process.env.DB_URL;
@@ -10,6 +14,39 @@ import mysql from 'mysql2/promise';
 //   AtlasDB = client.db('project1');
 // });
 
+interface UserSQLTable extends RowDataPacket {
+  user_serial?: number,
+  id?: string,
+  money?: number
+}
+
+interface BoardSQLTable extends RowDataPacket {
+  board_serial?: number,
+  user_serial?: number,
+  user_id?: string,
+  title?: string,
+  content?: string,
+  date?: string
+}
+
+interface CommentSQLTable extends RowDataPacket {
+  comment_serial?: number,
+  user_serial?: number,
+  user_id?: string,
+  board_serial?: number,
+  content?: string,
+  date?: string,
+  reply?: number | boolean
+}
+
+interface CoinSQLTable extends RowDataPacket {
+  coin_serial?: number,
+  user_serial?: number,
+  market?: string,
+  price?: number,
+  amount?: number
+}
+
 const mySQLPool = mysql.createPool({
   host: process.env.MYSQL_URL,
   port: Number(process.env.MYSQL_PORT),
@@ -18,4 +55,4 @@ const mySQLPool = mysql.createPool({
   database: 'blog',
 });
 
-export { mySQLPool };
+export { mySQLPool, UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable };

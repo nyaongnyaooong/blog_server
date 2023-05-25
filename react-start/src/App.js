@@ -355,7 +355,7 @@ const App = () => {
 
     const fetchData = async () => {
       const result = await axios.get('/user/verify');
-      setUserData(result.data);
+      setUserData(result.data.result.id);
       console.log(result.data);
     }
     fetchData();

@@ -1,8 +1,8 @@
 import express from 'express';
 import crypto from 'crypto';
-import { mySQLPool } from '../modules/database'
+import { mySQLPool, UserSQLTable } from '../modules/database'
 import { RowDataPacket } from 'mysql2/promise';
-import { createToken } from '../modules/jwt';
+import { createToken, Payload } from '../modules/jwt';
 
 
 const router = express.Router();
@@ -86,7 +86,7 @@ router.post('/login/post', async (req, res) => {
     if (key != hash) throw new Error('02');
 
     // payload
-    const payload = {
+    const payload: Payload = {
       serial: user_serial,
       userid: id,
       exp: '추가예정'
@@ -95,7 +95,7 @@ router.post('/login/post', async (req, res) => {
     //JWT 생성
     const token = createToken(payload);
     // 토큰생성 실패
-    if (!token) throw new Error('04');
+    if (!token) throw new Error('10');
 
     // cookie(name: string, val: string, options: CookieOptions): this;
     // cookie(name: string, val: any, options: CookieOptions): this;
@@ -119,7 +119,7 @@ router.post('/login/post', async (req, res) => {
       if (error.message === '01') errorMessage = '아이디가 존재하지 않습니다';
       if (error.message === '02') errorMessage = '패스워드를 확인해 주세요';
       if (error.message === '03') errorMessage = '해시화에 실패했습니다';
-      if (error.message === '04') errorMessage = '토큰생성에 실패했습니다';
+      if (error.message === '10') errorMessage = 'JWT 토큰생성에 실패했습니다';
 
       res.send({
         result: false,
@@ -152,10 +152,7 @@ router.post('/register/post', async (req, res) => {
     if (!reqStrPW) throw new Error('02');
 
     // 중복 ID 검사
-    interface User extends RowDataPacket {
-      user_serial: string
-    }
-    const [resSQL1] = await mySQL.query<User[]>(`SELECT user_serial 
+    const [resSQL1] = await mySQL.query<UserSQLTable[]>(`SELECT * 
     FROM user
     WHERE id='${reqStrID}'`);
 
@@ -171,9 +168,6 @@ router.post('/register/post', async (req, res) => {
     // 해시화에 실패 했을 경우 - 기타 오류
     if (error) throw new Error('03');
 
-    interface InsertResult extends RowDataPacket {
-      affectedRows: number
-    }
     const [resSQL2] = await mySQL.query(`INSERT INTO user(id, salt, hash) 
     VALUES('${reqStrID}', '${salt}', '${key}')`);
 
@@ -213,4 +207,4 @@ router.post('/register/post', async (req, res) => {
 
 });
 
-export { router };
+module.exports = router;

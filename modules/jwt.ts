@@ -26,7 +26,12 @@ const encode: (text: object) => string = (text) => {
  * iat : Issued At. 토큰이 발급된 시각을 나타낸다. Numeric Date 형식으로 나타낸다. 이 값으로 토큰이 발급된지 얼마나 오래됐는지 확인할 수 있다.
  * jti : JWT ID. JWT 의 식별자를 나타낸다.
  */
-const createToken: (payload: object) => string | false = (payload) => {
+interface Payload {
+  serial: number,
+  userid: string,
+  exp?: string
+}
+const createToken: (payload: Payload) => string | false = (payload) => {
   //header
   const header = {
     typ: 'JWT',
@@ -71,4 +76,5 @@ const createSignature: (encHeader: string, encPayload: string) => string | false
 export {
   createToken,
   createSignature,
+  Payload
 }

@@ -1,4 +1,3 @@
-@charset "UTF-8";
 /* @font-face {
   font-family: 'Jamsil';
   src: url('../../public/Jamsil.ttf') format('woff');
@@ -14,11 +13,12 @@ button {
 }
 
 @font-face {
-  font-family: "SCDream";
-  src: url("../../public/SCDream3.otf") format("woff");
+  font-family: 'SCDream';
+  src: url('../../public/SCDream3.otf') format('woff');
   font-weight: normal;
   font-style: normal;
 }
+
 html {
   width: 100%;
   height: 100%;
@@ -28,7 +28,7 @@ body {
   width: 100%;
   height: 100%;
   color: white;
-  font-family: "SCDream";
+  font-family: 'SCDream';
   background-color: rgb(41, 41, 41);
   margin: 0px;
   user-select: none;
@@ -73,28 +73,59 @@ ul {
   width: 100%;
 }
 
+
 .zhide {
   display: hidden;
   z-index: -1;
 }
 
+
+
+
+
+
 .bg-dark {
   background-color: rgb(41, 41, 41);
 }
 
+
 /* 프로필 */
+
 .profile {
   display: flex;
+
+  &-main {}
+
+  &-navigate {}
 }
+
+
+
 .parent {
   color: red;
+
+  .parent-child {
+    color: orange;
+
+    .parent-child-grandChild {
+      color: yellow;
+    }
+
+  }
 }
-.parent .parent-child {
-  color: orange;
-}
-.parent .parent-child .parent-child-grandChild {
-  color: yellow;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 .container {
   display: flex;
@@ -125,6 +156,7 @@ ul {
   flex-direction: column;
   /* align-items: center; */
   justify-content: center;
+
 }
 
 .content_box {
@@ -190,6 +222,7 @@ ul {
   display: flex;
   align-items: center;
   margin: 0 auto;
+
   height: 35px;
   background-color: whitesmoke;
   border: 1px solid rgb(190, 190, 190);
@@ -212,10 +245,12 @@ ul {
   outline: none;
 }
 
+
 .button_group {
   display: flex;
   align-items: center;
   margin: 0 auto;
+
   height: 30px;
   background-color: deepskyblue;
   border: none;
@@ -243,6 +278,7 @@ ul {
   display: flex;
   align-items: center;
   margin: 0 auto;
+
   width: 250px;
   height: 15px;
   border: none;
@@ -252,11 +288,13 @@ ul {
 .divine_line_box {
   flex: 3;
   margin: 0 auto;
+
 }
 
 .divine_line_box_mid {
   flex: 2;
   margin: 0 auto;
+
 }
 
 .divine_line {
@@ -311,7 +349,11 @@ ul {
 
 .oauth-button button:hover {
   background-color: steelblue;
+
 }
+
+
+
 
 /* .button_group button {
   display: block;
@@ -321,6 +363,9 @@ ul {
   width: 250px;
   height: 25px;
 } */
+
+
+
 .hidden {
   visibility: hidden;
   z-index: 1;
@@ -331,6 +376,9 @@ ul {
   z-index: 10;
 }
 
+
+
+
 .footer {
   /* display: inline-block; */
   /* background-color: aqua; */
@@ -339,6 +387,9 @@ ul {
   /* padding: 30px; */
   /* height: 100px; */
 }
+
+
+
 
 .app {
   display: flex;
@@ -355,6 +406,7 @@ ul {
   /* flex-direction: column; */
 }
 
+
 .mypage h4 {
   margin-top: 30px;
 }
@@ -369,6 +421,8 @@ ul {
   border: 0px;
 }
 
+
+
 .mypage-pageList {
   width: 250px;
 }
@@ -380,7 +434,7 @@ ul {
 .userinfo-password input {
   padding: 3px;
   width: 50%;
-  margin-top: 5px;
+  margin-top: 5px
 }
 
 .userinfo-password .button {
@@ -389,7 +443,11 @@ ul {
   text-align: right;
 }
 
+
+
+
 /* 코인 css */
+
 .coin-main {
   margin: 0 auto;
   text-align: center;
@@ -429,6 +487,10 @@ ul {
   justify-content: center;
 }
 
+
+
+
+
 .button-area {
   display: flex;
   width: 100%;
@@ -449,6 +511,7 @@ ul {
   padding: 10px;
   width: 100%;
   height: 150px;
+
   display: flex;
   /* width: 100%; */
   /* height: 100%; */
@@ -516,5 +579,3 @@ ul {
 .spare {
   flex: 1;
 }
-
-/*# sourceMappingURL=App.css.map */

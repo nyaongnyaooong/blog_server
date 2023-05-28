@@ -338,20 +338,13 @@ const DetailPage = (props) => {
       if (result) {
         setCoinPage([...coin]);
       }
-    } catch (error) {
-      const code = error.message
-      if (code === '00') alert('알 수 없는 오류 발생');
+    } catch (err) {
+      alert(err.message);
 
-      if (code === '01') {
-        alert('로그인 해주세요');
+      if (err.message === '로그인 정보가 없습니다') {
         setLgnFrmAct(true);
         setBgDarkAct(true);
       };
-
-      if (code === '02') alert('잔액이 부족합니다\n(구매전에는 충분했더라도 시장가가 변하여 부족해졌을 수 있습니다)');
-      if (code === '03') alert('숫자만 입력해주세요');
-
-
 
     }
   }

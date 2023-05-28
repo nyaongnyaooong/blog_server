@@ -60,20 +60,20 @@ const jwtExam: (token: string) => Payload | false = (token) => {
 }
 
 const alertMessage: (errorCode: string) => string = (errorCode) => {
+  if (errorCode === '01') return '제목이나 내용을 입력하지 않았습니다';
+  if (errorCode === '03') return '로그인 정보가 없습니다';
+  if (errorCode === '12') return 'KRW이 충분하지 않습니다';
+  if (errorCode === '13') return '판매 요청한 코인 수량이 보유한 수량보다 많습니다';
   console.log(`Error Occured! - Code(${errorCode})`);
-  if (errorCode = '01') return '제목이나 내용을 입력하지 않았습니다';
-  if (errorCode = '02') return '유저 검증에 문제가 있습니다';
-  if (errorCode = '03') return '로그인 정보가 없습니다';
-  if (errorCode = '04') return '존재하지 않는 게시물입니다';
-  if (errorCode = '05') return '게시물에 접근 권한이 없습니다';
-  if (errorCode = '06') return 'DB 업데이트에 실패하였습니다';
-  if (errorCode = '07') return '구글 코드를 받아오는데 실패했습니다';
-  if (errorCode = '08') return '구글 토큰을 받아오는데 실패했습니다';
-  if (errorCode = '09') return '구글 사용자 정보를 받아오는데 실패했습니다';
-  if (errorCode = '10') return 'JWT 토큰 생성에 실패했습니다';
-  if (errorCode = '11') return '요청한 마켓과 일치하는 ticker 데이터를 찾을 수 없습니다';
-  if (errorCode = '12') return 'KRW이 충분하지 않습니다';
-  if (errorCode = '13') return '판매 요청한 코인 수량이 보유한 수량보다 많습니다';
+  if (errorCode === '02') return '유저 검증에 문제가 있습니다';
+  if (errorCode === '04') return '존재하지 않는 게시물입니다';
+  if (errorCode === '05') return '게시물에 접근 권한이 없습니다';
+  if (errorCode === '06') return 'DB 업데이트에 실패하였습니다';
+  if (errorCode === '07') return '구글 코드를 받아오는데 실패했습니다';
+  if (errorCode === '08') return '구글 토큰을 받아오는데 실패했습니다';
+  if (errorCode === '09') return '구글 사용자 정보를 받아오는데 실패했습니다';
+  if (errorCode === '10') return 'JWT 토큰 생성에 실패했습니다';
+  if (errorCode === '11') return '요청한 마켓과 일치하는 ticker 데이터를 찾을 수 없습니다';
   return '알 수 없는 오류입니다';
 }
 
@@ -221,13 +221,16 @@ app.post('/user/charge', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
-    if (!req.user) throw new Error('01');
-    if (req.user.id === 'anonymous') throw new Error('02');
+    const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     const [resSQL] = await mySQL.query(
       `UPDATE user
       SET money=money+1000000, charge=charge+1
-      WHERE id='${req.user.id}'`
+      WHERE id='${userID}'`
     );
     await mySQL.commit();
 
@@ -291,15 +294,15 @@ app.post("/board/post", async (req, res) => {
 
   try {
     const { title: reqPostTitle, content: reqPostContent } = req.body;
-    // body 데이터가 정상적으로 들어오지 않음
-    if (typeof reqPostTitle !== 'string' || typeof reqPostContent !== 'string') throw new Error('01');
-
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
-    // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
+    // body 데이터가 정상적으로 들어오지 않거나 값이 없음
+    if (typeof reqPostTitle !== 'string' || reqPostTitle === '') throw new Error('01');
+    if (typeof reqPostContent !== 'string' || reqPostContent === '') throw new Error('01');
 
     const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
 
@@ -308,13 +311,13 @@ app.post("/board/post", async (req, res) => {
 
     await mySQL.commit();
 
-    if ('affectedRows' in result && result.affectedRows) {
-      res.send({ result: true, error: false });
-    }
-    else {
-      // DB 추가에 실패함
-      throw new Error('06');
-    }
+    // DB 추가에 실패함
+    if (!('affectedRows' in result) || !result.affectedRows) throw new Error('06');
+
+    res.send({
+      result: true,
+      error: false
+    });
 
   } catch (error) {
     await mySQL.rollback();
@@ -347,13 +350,11 @@ app.put("/board/put/:serial", async (req, res) => {
     // body 데이터가 정상적으로 들어오지 않음
     if (typeof putTitle !== 'string' || typeof putContent !== 'string') throw new Error('01');
 
+    const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
+    if (!req.user || !userID) throw new Error('02');
     // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
-
-
-    const { serial: userSerial } = req.user;
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
 
@@ -386,19 +387,19 @@ app.put("/board/put/:serial", async (req, res) => {
       throw new Error('06');
     }
 
-  } catch (error) {
+  } catch (err) {
     await mySQL.rollback();
-    let errorMessage = '알 수 없는 오류입니다';
+    let errMessage = '알 수 없는 오류입니다';
 
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
+    if (err instanceof Error) {
+      errMessage = alertMessage(err.message);
     } else {
-      errorMessage = String(error);
+      errMessage = String(err);
     }
 
     res.send({
       result: false,
-      error: errorMessage
+      error: errMessage
     });
   } finally {
     mySQL.release();
@@ -406,17 +407,16 @@ app.put("/board/put/:serial", async (req, res) => {
 
 });
 
-// 게시글 read
+// 게시글 상세 페이지
 app.get('/board/:serial', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   const { serial: reqPostSerial } = req.params;
 
   try {
+    const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
-    // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
+    if (!req.user || !userID) throw new Error('02');
 
     await mySQL.beginTransaction();
 
@@ -465,12 +465,11 @@ app.delete('/board/delete/:serial', async (req, res) => {
   const { serial: reqPostSerial } = req.params;
 
   try {
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
-    // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
-
     const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
 
@@ -524,16 +523,26 @@ app.post('/comment/add', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
+    const { content: reqContent } = req.body;
+    const reqSerial = Number(req.body.serial);
+    const reqCommentType = Number(req.body.reply);
+
+    // body 데이터의 타입이 다르거나 댓글 내용이 없음
+    if (isNaN(reqSerial)) throw new Error('01');
+    if (typeof reqContent !== 'string' || reqContent === '') throw new Error('01');
+    if (isNaN(reqCommentType)) throw new Error('01');
+
+    const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
+    if (!req.user || !userID) throw new Error('02');
     // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
 
     const [resSQL] = await mySQL.query(
       `INSERT INTO comment(user_serial, user_id, board_serial, content, date, reply)
-      VALUES(${req.user.serial}, '${req.user.id}', '${req.body.serial}', '${req.body.content}', NOW(), ${req.body.reply})`
+      VALUES(${req.user.serial}, '${req.user.id}', ${reqSerial}, '${reqContent}', NOW(), ${reqCommentType})`
     );
 
     await mySQL.commit();
@@ -576,12 +585,11 @@ app.put('/comment/put', async (req, res) => {
     // body 데이터가 정상적으로 들어오지 않음
     if (typeof commentSerial !== 'string' || typeof commentTitle !== 'string') throw new Error('01');
 
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
-    // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
-
     const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
 
@@ -706,7 +714,7 @@ app.get('/google/redirect', async (req, res) => {
     );
 
     let user_serial;
-    if ((resSQL1[0].user_serial)) {
+    if (resSQL1[0]?.user_serial) {
       user_serial = resSQL1[0].user_serial
     } else {
       // 가입되어있지 않은 ID
@@ -782,12 +790,11 @@ app.delete('/comment/delete/:serial', async (req, res) => {
     if (!req.params.serial || isNaN(Number(req.params.serial))) throw new Error('01');
     const reqCommentSerial = Number(req.params.serial);
 
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
-    // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
-
     const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
 
@@ -849,7 +856,7 @@ app.get('/user/verify', (req, res) => {
       },
       error: false
     })
-    
+
   } catch (err) {
     let errMessage = '';
     if (err instanceof Error) {
@@ -870,10 +877,11 @@ app.get('/user/profile', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
+    const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !('id' in req.user)) throw new Error('02');
+    if (!req.user || !userID) throw new Error('02');
     // 로그인하지 않음
-    if (!req.user.serial || req.user.id === 'anonymous') throw new Error('03');
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
     await mySQL.beginTransaction();
     const [result] = await mySQL.query<UserSQLTable[]>(
@@ -942,22 +950,20 @@ app.get('/user/coin', async (req, res) => {
     );
 
     // DB 가져오기 실패
-    if (!resSQL2[0].money) throw new Error('04');
-
-    const responseObject = {
-      price: resSQL1[0].price || 0,
-      amount: resSQL1[0].amount || 0,
-      money: resSQL2[0].money
-    }
+    if (!resSQL2[0]) throw new Error('04');
 
     res.send({
-      result: responseObject,
+      result: {
+        price: resSQL1[0]?.price || 0,
+        amount: resSQL1[0]?.amount || 0,
+        money: resSQL2[0].money
+      },
       error: false,
     });
   } catch (error) {
     await mySQL.rollback();
 
-    let errorMessage = '알 수 없는 오류입니다'
+    let errorMessage = '알 수 없는 오류입니다';
     if (error instanceof Error) {
       errorMessage = alertMessage(error.message);
     } else {
@@ -1008,16 +1014,16 @@ app.post('/user/coin/trade', async (req, res) => {
     await mySQL.beginTransaction();
 
     // 유저의 요청한 코인 보유 수량 불러오기
-    let [resSQL1] = await mySQL.query<CoinSQLTable[]>(
-      `SELECT *
+    let [resSQL1] = await mySQL.query<CoinSQLTable[]>(`SELECT *
       FROM coin
       WHERE user_serial=${userSerial} AND market='${reqMarketCode}'`
     );
 
+
     // 추후 평단가 및 수량 계산을 위해 undefined일 경우 0대입
-    const userOwnData = resSQL1[0];
-    userOwnData.price = userOwnData.price || 0;
-    userOwnData.amount = userOwnData.amount || 0;
+    const userOwnData = resSQL1[0] || {};
+    userOwnData.price = userOwnData?.price || 0;
+    userOwnData.amount = userOwnData?.amount || 0;
 
     if (reqType === 'buy') {
       // 유저의 현금 불러오기
@@ -1027,7 +1033,7 @@ app.post('/user/coin/trade', async (req, res) => {
       );
 
       // DB 데이터 불러오기 실패함
-      if (!resSQL2[0].money || !resSQL2[0].price) throw new Error('04');
+      if (!resSQL2[0]?.money) throw new Error('04');
 
       // KRW이 충분하지 않음
       if (resSQL2[0].money < reqAmount * reqMarketPrice) throw new Error('12');

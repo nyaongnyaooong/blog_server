@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node app",
+    "sass": "sass --watch ./react-start/src/css",
     "dev": "nodemon app.js",
     "devtype": "nodemon --watch \"*.ts\" --exec \"ts-node\" app.ts"
   },

@@ -79,27 +79,26 @@ const Home = () => {
 
   const PageIntro = () => {
     return (
-      <div className='profile-intro'>
+      <div className='profile-main'>
+
         <div className='profile-intro-img'>
           <img src='/profile.jpg'></img>
         </div>
+        
         <div className='profile-intro-text'>
 
         </div>
+
       </div>
     )
   }
 
   return (
-    <div className="modal-profile">
-      <div className="navigate">
+    <div className="content-profile">
+      <Profile />
+
+      <div className="profile-navigate">
         새발자 테스트 모달
-      </div>
-
-      <div className="modal-content">
-        <PageIntro />
-        <PageSkill />
-
       </div>
     </div>
   )

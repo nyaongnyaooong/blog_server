@@ -37,13 +37,12 @@ const BoardPostCreate = (props) => {
 
       if (result) setBoardPage('home');
 
-    } catch (error) {
-      if (error.message === '01') {
-        alert('로그인해주세요');
+    } catch (err) {
+      alert(err.message);
+      if (err.message === '로그인 정보가 없습니다') {
         setLgnFrmAct(true);
         setBgDarkAct(true);
       }
-      else alert('알 수 없는 오류입니다');
     }
   }
 
@@ -165,25 +164,26 @@ const BoardPostRead = (props) => {
           reply: reply,
         },
       });
-      if (response.data.result) {
-        console.log(commentData)
-        const { sqlData, userData } = response.data.result;
-        const newCommentData = [...commentData];
-        newCommentData.push({
-          comment_serial: sqlData.insertId,
-          user_serial: userData.serial,
-          user_id: userData.id,
-          board_serial: serial,
-          content: content,
-          date: '방금 전',
-          reply: reply
-        })
-        setCommentData(newCommentData);
-      }
 
+      if (response.data.error) throw new Error(response.data.error);
 
-    } catch (error) {
-      console.log(error);
+      console.log(commentData)
+      const { sqlData, userData } = response.data.result;
+      const newCommentData = [...commentData];
+      newCommentData.push({
+        comment_serial: sqlData.insertId,
+        user_serial: userData.serial,
+        user_id: userData.id,
+        board_serial: serial,
+        content: content,
+        date: '방금 전',
+        reply: reply
+      })
+      setCommentData(newCommentData);
+
+    } catch (err) {
+      console.log(err.message)
+      alert(err.message);
     }
 
   };

@@ -89,7 +89,7 @@ const LogInForm = (props) => {
 
   const reqLogIn = async (e) => {
     e.preventDefault();
-    if(!loginActive) return
+    if (!loginActive) return
     setLoginActive(false);
     setTimeout(() => {
       setLoginActive(true);
@@ -99,6 +99,7 @@ const LogInForm = (props) => {
       loginPW: inputPW
     }
     try {
+      if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(inputID)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
       if (!inputID) throw new Error('아이디를 입력해주세요');
       if (!inputPW) throw new Error('패스워드를 입력해주세요');
       const response = await axios.post('/login/post', reqObject);

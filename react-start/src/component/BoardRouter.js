@@ -1,15 +1,11 @@
 // eslint-disable-next-line
 
-import '../css/board.css'
+import '../css/Board.css'
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { Loading2 } from './Loading';
-
-
-
-
 
 // 게시판 새로운 글 포스팅 페이지
 const BoardPostCreate = (props) => {
@@ -21,7 +17,6 @@ const BoardPostCreate = (props) => {
   //발행 함수
   const postBoard = async (event) => {
     event.preventDefault();
-    console.log(title, postData);
     try {
       const response = await axios.request({
         method: 'post',
@@ -74,7 +69,6 @@ const BoardPostCreate = (props) => {
 const BoardPostUpdate = (props) => {
   const { serial, postData } = props;
   const { setBoardPage } = props.stateFuncs;
-  console.log(postData);
 
   let [title, setTitle] = useState(postData.title);
   let content = postData.content;
@@ -128,46 +122,59 @@ const BoardPostUpdate = (props) => {
 
 // 게시판 글 읽는 페이지
 const BoardPostRead = (props) => {
-  const { serial } = props;
+  const { serial, stateFunctions } = props;
   const { setBoardPage, setPostNumber, setPostData } = props.stateFuncs
 
+  /*
+    States
+  */
+
+  // 게시물 데이터 (객체)
   const [boardData, setBoardData] = useState(null);
+  // 댓글 데이터 (객체)
   const [commentData, setCommentData] = useState(null);
+  // 현재 접속 유저 정보 (객체)
   const [userData, setUserData] = useState(null);
+  // 대댓글 창 state
   const [replyActive, setReplyActive] = useState([]);
-  const [putReplyActive, setPutReplyActive] = useState([]);
 
   const [isUserMatch, setIsUserMatch] = useState(false);
 
-  // 삭제 요청 함수
-  const deletePost = async () => {
+  // 댓글 데이터 (html)
+  const [commentList, setCommentList] = useState([]);
 
+  /*
+    Functions
+  */
+
+  // 게시물 삭제 요청 함수
+  const deletePost = async () => {
     try {
-      const response = await axios.delete('/board/delete/' + serial);
+      const response = await axios.delete('/board/' + serial);
       const { result, error } = response.data;
-      if (error) throw new Error(error)
+      if (error) throw new Error(error);
       if (result) setBoardPage('home');
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      alert(err);
     }
   };
 
   // 댓글 추가 요청 함수
-  const addComment = async (content, reply = 0) => {
+  const addComment = async (reqContent, reply = 0) => {
     try {
+      if (!reqContent) throw new Error('댓글을 입력해주세요')
       const response = await axios.request({
         method: 'post',
-        url: '/comment/add',
+        url: '/comment',
         data: {
           serial: serial,
-          content: content,
+          content: reqContent,
           reply: reply,
         },
       });
 
       if (response.data.error) throw new Error(response.data.error);
 
-      console.log(commentData)
       const { sqlData, userData } = response.data.result;
       const newCommentData = [...commentData];
       newCommentData.push({
@@ -175,14 +182,16 @@ const BoardPostRead = (props) => {
         user_serial: userData.serial,
         user_id: userData.id,
         board_serial: serial,
-        content: content,
+        content: reqContent,
         date: '방금 전',
         reply: reply
       })
+
+      const newState = new Array(newCommentData.length).fill({ type: 'reply', active: false })
+      setReplyActive(newState);
       setCommentData(newCommentData);
 
     } catch (err) {
-      console.log(err.message)
       alert(err.message);
     }
 
@@ -193,43 +202,69 @@ const BoardPostRead = (props) => {
     try {
       const response = await axios.request({
         method: 'delete',
-        url: '/comment/delete/' + comment_serial,
+        url: '/comment/' + comment_serial,
+        data: {
+          boardSerial: serial
+        }
       });
+
       if (response.data.result) {
+        const { commentState } = response.data.result;
+
         const newCommentData = [...commentData];
         const index = newCommentData.findIndex((e) => {
           return e.comment_serial === comment_serial;
         })
-        newCommentData.splice(index, 1)
 
+        if (commentState === 'delete') newCommentData.splice(index, 1);
+        else if (commentState === 'erase') newCommentData[index].erase = 1;
+        else throw new Error('알 수 없는 에러입니다');
+
+        const newState = new Array(newCommentData.length).fill({ type: 'reply', active: false })
+        setReplyActive(newState);
         setCommentData(newCommentData);
+
       }
-
-
     } catch (error) {
-      console.log(error);
+      alert(error)
     }
 
   };
 
   // 댓글 수정 요청 함수
-  const putComment = async (content, serial) => {
+  const patchComment = async (reqContent, reqSerial) => {
+
     try {
+      if (!reqContent) throw new Error('댓글을 입력해주세요')
       const response = await axios.request({
-        method: 'put',
-        url: 'comment/put',
+        method: 'patch',
+        url: 'comment',
         data: {
-          serial,
-          content,
+          reqSerial,
+          reqContent,
         },
       });
-      console.log(response)
-      setPutReplyActive()
 
-    } catch (error) {
-      console.log(putComment())
+      const { result, error } = response?.data;
+      if (!result || error) throw new Error('수정에 실패하였습니다.');
+
+      const newState = [...commentData];
+      newState.forEach(e => {
+        if (e.comment_serial === reqSerial) {
+          e.content = reqContent;
+          return false;
+        }
+      })
+      const newState2 = new Array(newState.length).fill({ type: 'reply', active: false })
+
+      setReplyActive(newState2);
+      setCommentData(newState);
+    } catch (err) {
+      alert(err)
     }
   };
+
+
 
   // 게시물 데이터 요청
   useEffect(() => {
@@ -240,7 +275,6 @@ const BoardPostRead = (props) => {
         if (!result) throw new Error(error);
 
         const { boardData, commentData, userData } = result;
-        console.log(result)
 
         if (boardData.user_serial === userData.serial || userData.id === 'admin') setIsUserMatch(true);
         setUserData(userData);
@@ -248,34 +282,128 @@ const BoardPostRead = (props) => {
         setCommentData(commentData);
         setPostData(boardData);
 
-        const initReplyActive = new Array(commentData.length).fill(false);
-        setReplyActive(initReplyActive);
-        putReplyActive(initReplyActive);
-      } catch (error) {
-        console.log(error);
+        const newState = new Array(commentData.length).fill({ type: 'reply', active: false });
+        setReplyActive(newState);
+
+      } catch (err) {
+        console.log(err);
       }
     };
     fetchData();
   }, [serial]);
 
-  if (boardData && commentData && userData) {
+  // 댓글 데이터 > html 변환
+  useEffect(() => {
+    if (!commentData) return;
 
-    // 이하 댓글 리스트 작성
+    if (commentData.length !== replyActive.length) {
+      const newState = new Array(commentData.length).fill({ type: 'reply', active: false });
+      setReplyActive(newState);
+    }
+
+    /*
+      Components
+    */
+    // 답글 form
+    const ReplyInput = (props) => {
+      const { type, replySerial } = props;
+
+      if (type === 'reply') {
+        return (
+          <div className='comment-reply-write'>
+            <div className='blank'></div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              addComment(e.target.comment_content.value, replySerial);
+              // const newState = new Array(replyActive.length).fill({ type: 'patch', active: false });
+              // setReplyActive(newState);
+            }}>
+              <div className='comment-reply-text'><textarea name='comment_content' /></div>
+              <div className='comment-button'><button type='submit'>등록</button></div>
+            </form>
+          </div>
+        );
+      } else if (type === 'patch') {
+        return (
+          <div className='comment-reply-write'>
+            <div className='blank'></div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              patchComment(e.target.comment_content.value, replySerial);
+              // const newState = new Array(replyActive.length).fill({ type: 'patch', active: false });
+              // setReplyActive(newState);
+            }}>
+              <div className='comment-reply-text'><textarea name='comment_content' /></div>
+              <div className='comment-button'><button type='submit'>수정</button></div>
+            </form>
+          </div>
+        );
+      }
+    }
+    // 답글 버튼
+    const ButtonReply = (props) => {
+      const { index } = props
+      return (
+        <button onClick={() => {
+          // const newState = replyActive.map((e, i) => {
+          //   if (index === i && (e.type !== 'reply' || e.active === false)) return { type: 'reply', active: true }
+          //   else return { type: 'reply', active: false }
+          // });
+
+          const newState = new Array(replyActive.length).fill({ type: 'reply', active: false });
+          if (replyActive[index].type !== 'reply' || !replyActive[index].active) newState[index] = { type: 'reply', active: true };
+          setReplyActive(newState);
+        }}>답글</button>
+      )
+    }
+    // 삭제 버튼
+    const ButtonDelete = (props) => {
+      const { serial } = props;
+      return (
+        <button onClick={async () => {
+          delComment(serial);
+        }}>삭제</button>
+      );
+    }
+    // 수정 버튼
+    const ButtonPatch = (props) => {
+      const { index } = props;
+      return (
+        <button onClick={() => {
+          // const newState = replyActive.map((e, i) => {
+          //   if (index === i && (e.type !== 'patch' || e.active === false)) return { type: 'patch', active: true }
+          //   else return { type: 'patch', active: false }
+          // });
+
+          const newState = new Array(replyActive.length).fill({ type: 'patch', active: false });
+          if (replyActive[index].type !== 'patch' || !replyActive[index].active) newState[index] = { type: 'patch', active: true };
+          setReplyActive(newState);
+        }}>수정</button>
+      )
+    }
+
+
 
     // 댓글데이터를 댓글과 대댓글로 분리
+
+    //댓글 array
     const arrComment = [];
+    //대댓글 array
     const arrReply = [];
     commentData.forEach((e, i) => {
+      e.index = i;
       if (e.reply) arrReply.push(e);
       else arrComment.push(e);
     });
-    console.log(commentData);
 
     // 댓글 리스트 html 작성
-    const commentList = arrComment.map((e, i) => {
-      const { comment_serial, user_serial, user_id, content, date } = e;
-      // mysql의 UTC 를 KST로 변환
+    const commentHTML = arrComment.map((e, i) => {
+      const { comment_serial, user_serial, user_id, content: objContent, date, erase, index } = e;
+      const content = erase ? '삭제된 댓글입니다' : objContent;
 
+      // UTC > KST로 변환
       let dateKST_String;
       if (date === '방금 전') {
         dateKST_String = date;
@@ -285,16 +413,21 @@ const BoardPostRead = (props) => {
         dateKST_String = dateKST.toLocaleString();
       }
 
-
       // 각 댓글에 대댓글이 있는지 확인하여 대댓글 html작성
-      const replyList = arrReply.map((f, j) => {
-        const { reply } = f;
+      const replyHTML = arrReply.map((f, j) => {
+        const {
+          comment_serial: reply_serial,
+          user_serial: reply_user_serial,
+          user_id: reply_user_id,
+          content: reply_content,
+          date: reply_date, reply,
+          index
+        } = f;
 
         // mysql의 UTC 를 KST로 변환
         let reply_dateKST_String;
-        if (date === '방금 전') {
-          reply_dateKST_String = f.date;
-        } else {
+        if (reply_date === '방금 전') reply_dateKST_String = f.date;
+        else {
           const reply_dateKST = new Date(f.date)
           reply_dateKST.setHours(reply_dateKST.getHours() + 9);
           reply_dateKST_String = reply_dateKST.toLocaleString();
@@ -305,29 +438,21 @@ const BoardPostRead = (props) => {
             <div key={j} className='comment-reply-item'>
               <div className='blank'></div>
               <div className='comment-reply-item-content'>
-                <div className='comment-item-user'>
-                  <span>{f.user_id}</span>
-                </div>
-                <div className='comment-item-content'>
-                  <span>{f.content}</span>
-                </div>
+                {/* 아이디 표시 */}
+                <div className='comment-item-user'><span>{reply_user_id}</span></div>
+                {/* 댓글 내용 */}
+                <div className='comment-item-content'><span>{reply_content}</span></div>
                 <div className='comment-item-etc'>
                   <div className='comment-item-time'>
-                    <div>
-                      <span>{reply_dateKST_String}</span>
-                    </div>
+                    {/* 댓글 작성시간 */}
+                    <div><span>{reply_dateKST_String}</span></div>
                   </div>
                   {
-                    userData.serial === f.user_serial ? (
+                    userData.serial === reply_user_serial ? (
                       <div className='comment-item-button'>
-                        {/* <button onClick={() => {
-                          setPutReplyActive([comment_serial])
-                        }}>수정</button> */}
+                        <ButtonPatch index={index} />
 
-                        <button onClick={async () => {
-                          delComment(comment_serial);
-                        }}>삭제</button>
-
+                        <ButtonDelete serial={reply_serial} />
                       </div>
                     ) : (
                       <div className='comment-item-button'>
@@ -335,6 +460,12 @@ const BoardPostRead = (props) => {
                     )
                   }
                 </div>
+                {
+                  // 수정 버튼을 눌렀을 때 textarea 표시
+                  replyActive[index].type === 'patch' && replyActive[index].active ?
+                    <ReplyInput type={replyActive[index].type} replySerial={reply_serial} /> :
+                    <div style={{ display: 'hidden' }} />
+                }
               </div>
             </div>
           )
@@ -343,90 +474,57 @@ const BoardPostRead = (props) => {
 
       return (
         <div key={i} className='comment-item'>
-          <div className='comment-item-user'>
-            <span>{user_id}</span>
-          </div>
-          <div className='comment-item-content'>
-            <span>{content}</span>
-          </div>
+          <div className='comment-item-user'><span>{user_id}</span></div>
+          <div className='comment-item-content'><span>{content}</span></div>
           <div className='comment-item-etc'>
-            <div className='comment-item-time'>
-              <span>{dateKST_String}</span>
-            </div>
+            <div className='comment-item-time'><span>{dateKST_String}</span></div>
             {
               // 댓글 주인과 로그인 유저가 같으면 수정 삭제버튼 추가
-              userData.serial === user_serial ? (
+              userData.serial === user_serial || userData.id === 'admin' ? (
                 <div className='comment-item-button'>
-                  {/* <button onClick={() => {
-                    setPutReplyActive([comment_serial])
-                  }}>수정</button> */}
-
-                  <button onClick={() => {
-                    delComment(comment_serial);
-                  }}>삭제</button>
-
-                  <button onClick={() => {
-                    const newReplyActive = new Array(replyActive.length).fill(false);
-                    if (!replyActive[i]) newReplyActive[i] = true;
-
-                    setReplyActive(newReplyActive);
-                  }}>답글</button>
+                  {/* 수정하기 버튼 */}
+                  <ButtonPatch index={index} />
+                  {/* 삭제하기 버튼 */}
+                  <ButtonDelete serial={comment_serial} />
+                  {/* 답글달기 버튼 */}
+                  <ButtonReply index={index} />
                 </div>
               ) : (
                 <div className='comment-item-button'>
-                  <button onClick={() => {
-                    const newReplyActive = new Array(replyActive.length).fill(false);
-                    if (!replyActive[i]) newReplyActive[i] = true;
-
-                    setReplyActive(newReplyActive);
-                  }}>답글</button>
+                  <ButtonReply index={index} />
                 </div>
               )
             }
           </div>
           {
             // 답글 버튼을 눌렀을 때 textarea 표시
-            replyActive[i] ? (
-              <div className='comment-reply-write'>
-                <div className='blank'></div>
-
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  console.log(comment_serial)
-                  addComment(e.target.comment_content.value, comment_serial);
-                }}>
-                  <div className='comment-reply-text'>
-                    <textarea name='comment_content' />
-                  </div>
-
-                  <div className='comment-button'>
-                    <button type='submit'>등록</button>
-                  </div>
-                </form>
-              </div>
-            ) : (<div style={{ display: 'hidden' }} />)
+            replyActive[index].active ?
+              <ReplyInput type={replyActive[index].type} replySerial={comment_serial} /> :
+              <div style={{ display: 'hidden' }} />
           }
           {/* 대댓글이 있으면 표시 */}
           <div className='comment-reply-List'>
-            {replyList}
+            {replyHTML}
           </div>
         </div>
       );
     });
 
+    setCommentList(commentHTML);
+  }, [commentData, replyActive])
 
 
+
+  if (boardData && commentData && userData) {
     return (
       <div className='content_box ani_fadeIn'>
+        <div className='content-title'>
+          <h2>자유 게시판</h2>
+        </div>
         <div className='post-head'>
-          <h2 className='post-header'>
-            자유 게시판
-          </h2>
-
           <div className='post-title'>
-            <h3>
-              {boardData.title}
-            </h3>
+            <div className='text'><h3>{boardData.title}</h3></div>
+            <div className='button'><button onClick={() => {setBoardPage('home')}}>메인으로</button></div>
           </div>
 
           <div className='post-id'>
@@ -486,19 +584,18 @@ const BoardPostRead = (props) => {
       </div>
     )
   } else return <Loading2 />
-
 }
 
 // 게시판 홈
 const BoardHome = (props) => {
   const { stateFuncs } = props;
-  const { setBoardPage, setPostNumber } = stateFuncs
+  const { setBoardPage, setPostNumber, stateFunctions } = stateFuncs
 
   // 게시물 리스트
   const [postList, setPostList] = useState([]);
   const [userData, setUserData] = useState({});
 
-  // 게시판 표 최상단 제목 컴포넌트
+  // thead 컴포넌트
   const TableCellTitle = (props) => {
     return (
       <thead>
@@ -521,38 +618,34 @@ const BoardHome = (props) => {
     );
   }
 
-  //게시판 표 내용 컴포넌트
+  // tbody 컴포넌트
   const TableCell = (props) => {
     const { setPostNumber, setBoardPage } = props.stateFuncs;
-    let [fullCreatedDate] = props.date.split("T");
+    const { title, commentNumber, id, view, date } = props;
+    const [created] = date.split("T");
 
     return (
-      <tr onClick={(event) => {
-        // event.preventDefault();
+      <tr onClick={() => {
         setPostNumber(props.serial);
         setBoardPage('read');
       }} className="board_tbody_tr">
 
         <td className="board_title">
-
-          <span>{props.title}</span>
-
-          <span className="board_comment"> (0)</span>
+          <span>{title}</span>
+          <span className="board_comment"> ({commentNumber})</span>
         </td>
         <td className="board_author">
-          <span>{props.id}</span>
+          <span>{id}</span>
         </td>
         <td className="board_view">
-          <span>{props.view}</span>
+          <span>{view}</span>
         </td>
         <td className="board_created">
-          <span>{fullCreatedDate}</span>
+          <span>{created}</span>
         </td>
       </tr>
     );
   }
-
-
 
   // 게시물 리스트 요청
   useEffect(() => {
@@ -561,13 +654,17 @@ const BoardHome = (props) => {
         const response = await axios.get("/board/data");
         if (!response.data.result) throw new Error('에러');
         const { sqlData, userData } = response.data.result;
-        console.log(response.data)
+        const { boardList, commentsList } = sqlData;
         setUserData(userData);
 
         const postArray = [];
-        sqlData.forEach((e, i) => {
+        boardList.forEach((e, i) => {
+          let comments = 0;
+          commentsList.forEach(f => {
+            if (f.board_serial === e.board_serial) comments = f.comments;
+          })
           postArray.push(
-            <TableCell key={i} stateFuncs={stateFuncs} serial={e.board_serial} title={e.title} id={e.user_id} view={e.view} date={e.date} />
+            <TableCell key={i} stateFuncs={stateFuncs} serial={e.board_serial} commentNumber={comments} title={e.title} id={e.user_id} view={e.view} date={e.date} />
           );
         });
         setPostList(postArray);
@@ -578,21 +675,26 @@ const BoardHome = (props) => {
     fetchData();
   }, []);
 
-
+  // 게시물 리스트 데이터가 없을 경우에는 로딩 중 화면 표기
   return postList.length ? (
     <div className="content_box board-main ani_fadeIn">
-      <h2>자유 게시판</h2>
+      <div className='content-title'>
+        <h2>자유 게시판</h2>
+      </div>
 
       <div className='button'>
         <button onClick={() => { setBoardPage('create'); }}>글쓰기</button>
       </div>
 
-      <table className="board_table">
-        <TableCellTitle desc1="제목" desc2="글쓴이" desc3="조회수" desc4="날짜"></TableCellTitle>
-        <tbody>
-          {postList}
-        </tbody>
-      </table>
+      <div className='table'>
+        <table className="board_table">
+          <TableCellTitle desc1="제목" desc2="글쓴이" desc3="조회수" desc4="날짜"></TableCellTitle>
+          <tbody>
+            {postList}
+          </tbody>
+        </table>
+      </div>
+
       {/* <div>다음페이지</div> */}
     </div>
   ) : (
@@ -605,7 +707,6 @@ const Board = (props) => {
   const { stateFunctions, serial } = props
   const { setPageSerial } = stateFunctions;
   let initPage = 'home';
-  console.log(serial)
   if (serial) {
     initPage = 'read';
     setPageSerial(null)
@@ -623,11 +724,10 @@ const Board = (props) => {
     setPostData,
   }
   if (boardPage === 'home') return <BoardHome stateFuncs={stateFuncs} />
-  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} />
+  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} stateFunctions={stateFunctions}/>
   if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} stateFunctions={stateFunctions} />
   if (boardPage === 'update') return <BoardPostUpdate postData={postData} serial={postNumber} stateFuncs={stateFuncs} />
   return <Loading2 />
 }
-
 
 export { Board };

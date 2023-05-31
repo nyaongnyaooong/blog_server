@@ -1,0 +1,172 @@
+a {
+  &:link {
+    color: white;
+    text-decoration: none;
+  }
+
+  &:visited {
+    color: white;
+    text-decoration: none;
+  }
+
+  &:hover {
+    color: steelblue;
+    text-decoration: none;
+  }
+
+  &:active {
+    /* color: green; */
+    text-decoration: none;
+  }
+}
+
+button {
+  // 드래그 선택 방지
+  user-select: none;
+}
+
+
+.navbar {
+  width: 100%;
+  /* 네비게이션 바 높이 */
+  height: 60px;
+  background-color: #343a40;
+  display: flex;
+  align-items: center;
+
+  button {
+    border: 0px;
+    padding: 0px;
+    background-color: transparent;
+    /* letter-spacing: 2px; */
+    font-size: 15px;
+  }
+}
+
+.nav_btn {
+  &_active {
+    cursor: default;
+    color: steelblue;
+  }
+
+  &_deactive {
+    cursor: pointer;
+    color: white;
+  }
+}
+
+
+
+.nav_l_section {
+  margin-left: 10px;
+  height: 60px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+
+  button {
+    /* font-weight: 700; */
+    font-size: 17px;
+    margin-left: 7px;
+    cursor: pointer;
+
+    /* letter-spacing: 1px; */
+    &:hover {
+      // cursor: pointer;
+      color: steelblue;
+      text-decoration: none;
+    }
+  }
+}
+
+
+
+
+.divMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 70%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  float: left;
+}
+
+.divMark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+
+
+
+
+.nav_m_section {
+  width: 100%;
+  flex: 3;
+  display: flex;
+  justify-content: flex-start;
+
+  a {
+    margin-left: 40px;
+  }
+
+  ul {
+    margin: 0 auto;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    text-align: right;
+
+  }
+
+  li {
+    text-align: center;
+    margin-left: 30px;
+    font-weight: 700;
+  }
+
+  button {
+    width: 100px;
+
+    &:hover {
+      // cursor: default;
+      color: steelblue;
+      text-decoration: none;
+    }
+  }
+}
+
+
+
+.nav_r_section {
+  margin-right: 15px;
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.nav_r_section button {
+  margin-left: 30px;
+  /* font-weight: 700; */
+  color: white;
+  display: table-cell;
+  float: right;
+  cursor: pointer;
+  /* padding-left: 10px; */
+}
+
+.nav_r_section button:hover {
+  cursor: pointer;
+  color: steelblue;
+  text-decoration: none;
+}
+
+.nav_r_section span {
+  color: blueviolet;
+  font-size: 15px;
+}

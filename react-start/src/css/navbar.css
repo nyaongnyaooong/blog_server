@@ -1,3 +1,4 @@
+@charset "UTF-8";
 a:link {
   color: white;
   text-decoration: none;
@@ -16,9 +17,8 @@ a:active {
 }
 
 button {
-  user-select : none;
+  user-select: none;
 }
-
 
 .navbar {
   width: 100%;
@@ -28,7 +28,6 @@ button {
   display: flex;
   align-items: center;
 }
-
 .navbar button {
   border: 0px;
   padding: 0px;
@@ -38,34 +37,37 @@ button {
 }
 
 .nav_btn_active {
+  cursor: default;
   color: steelblue;
 }
-
 .nav_btn_deactive {
+  cursor: pointer;
   color: white;
 }
 
 .nav_l_section {
   margin-left: 10px;
-  height: 30px;
+  height: 60px;
   flex: 1;
   display: flex;
   align-items: center;
-  cursor : pointer;
+  cursor: pointer;
 }
-
 .nav_l_section button {
   /* font-weight: 700; */
   font-size: 17px;
   margin-left: 7px;
-  cursor : pointer;
+  cursor: pointer;
   /* letter-spacing: 1px; */
 }
-
+.nav_l_section button:hover {
+  color: steelblue;
+  text-decoration: none;
+}
 
 .divMark {
   width: 30px;
-  height: 30px; 
+  height: 30px;
   border-radius: 70%;
   overflow: hidden;
   display: flex;
@@ -79,50 +81,37 @@ button {
   object-fit: cover;
 }
 
-
-
-
-
-
 .nav_m_section {
   width: 100%;
-  height: 30px;
   flex: 3;
   display: flex;
   justify-content: flex-start;
 }
-
 .nav_m_section a {
   margin-left: 40px;
 }
-
-
 .nav_m_section ul {
   margin: 0 auto;
   list-style: none;
   display: flex;
   align-items: center;
   text-align: right;
-
 }
-
 .nav_m_section li {
-  float: left;
+  text-align: center;
   margin-left: 30px;
   font-weight: 700;
 }
-
+.nav_m_section button {
+  width: 100px;
+}
 .nav_m_section button:hover {
-  cursor: pointer;
   color: steelblue;
   text-decoration: none;
 }
 
-
-
 .nav_r_section {
   margin-right: 15px;
-  height: 30px;
   flex: 1;
   display: flex;
   justify-content: flex-end;
@@ -149,3 +138,5 @@ button {
   color: blueviolet;
   font-size: 15px;
 }
+
+/*# sourceMappingURL=Navbar.css.map */

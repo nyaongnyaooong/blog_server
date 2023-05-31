@@ -8,6 +8,15 @@ import { createToken, Payload } from '../modules/jwt';
 const router = express.Router();
 
 
+interface User extends RowDataPacket {
+  user_serial: number,
+  id: string,
+  salt: string,
+  money: number,
+  charge: number
+}
+
+
 interface HashPWResult {
   salt: string,
   key: string
@@ -53,20 +62,13 @@ router.post('/login/post', async (req, res) => {
 
   const mySQL = await mySQLPool.getConnection();
 
-  console.log('로그인 요청', req.body)
   try {
-    if (!loginPW) throw new Error('no password')
-    if (!loginID) throw new Error('no id')
+    if (!loginPW) throw new Error('no password');
+    if (!loginID) throw new Error('no id');
+    if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(loginID)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
 
 
     // db에서 요청한 ID에 해당하는 data 가져옴
-    interface User extends RowDataPacket {
-      user_serial: number,
-      id: string,
-      salt: string,
-      money: number,
-      charge: number
-    }
     const [resSQL] = await mySQL.query<User[]>(`SELECT *
     FROM user
     WHERE id='${loginID}'

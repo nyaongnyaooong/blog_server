@@ -36,7 +36,8 @@ interface CommentSQLTable extends RowDataPacket {
   board_serial?: number,
   content?: string,
   date?: string,
-  reply?: number | boolean
+  reply?: number,
+  erase?: number
 }
 
 interface CoinSQLTable extends RowDataPacket {
@@ -47,6 +48,16 @@ interface CoinSQLTable extends RowDataPacket {
   amount?: number
 }
 
+interface TradeSQLTable extends RowDataPacket {
+  trade_serial?: number,
+  user_serial?: number,
+  market?: string,
+  trading?: boolean,
+  amount?: boolean,
+  price?: boolean,
+  date?: string
+}
+
 const mySQLPool = mysql.createPool({
   host: process.env.MYSQL_URL,
   port: Number(process.env.MYSQL_PORT),
@@ -55,4 +66,4 @@ const mySQLPool = mysql.createPool({
   database: 'blog',
 });
 
-export { mySQLPool, UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable };
+export { mySQLPool, UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable, TradeSQLTable };

@@ -62,21 +62,22 @@ const MainPage = (props) => {
     const Href = (props) => {
       const { page, children } = props
       return (
-        <a href='/' onClick={(event) => {
+        <span onClick={(event) => {
           event.preventDefault();
           setCoinPage([page]);
           setMarketName(children);
         }}>
           {children}
-        </a>
+        </span>
       )
     }
 
     const array = [];
     data.forEach((elm, idx) => {
       let classColor;
-      if (elm.trade_price > elm.opening_price) classColor = 'colorRed'
+      if (elm.trade_price > elm.opening_price) classColor = 'colorRed';
       else if (elm.trade_price < elm.opening_price) classColor = 'colorBlue';
+      else classColor = 'colorWhite';
 
       array.push(
         <tr key={idx}>
@@ -87,14 +88,14 @@ const MainPage = (props) => {
           {/* 기호 */}
           <td className='alignCenter'><Href page={elm.market}>{elm.market}</Href></td>
           {/* 현재가 */}
-          <td className='alignRight'>{elm.trade_price.toLocaleString('ko-KR')}</td>
+          <td className='alignCenter'>{elm.trade_price.toLocaleString('ko-KR')}</td>
           {/* 전일대비 */}
-          <td className={'alignRight ' + classColor}>
+          <td className={'alignCenter ' + classColor}>
             {Math.floor(10000 * (elm.trade_price - elm.opening_price) / elm.opening_price) / 100}
             %
           </td>
           {/* 거래대금 */}
-          <td className='alignRight'>
+          <td className='alignCenter'>
             {(Math.floor(elm.acc_trade_price_24h / 10000) / 100).toLocaleString('ko-KR')}
             M
           </td>
@@ -113,11 +114,11 @@ const MainPage = (props) => {
 
   //ticker 값이 들어오지않으면 Loading표시 
   return ticker ? (
-    <div className="content_box coin-main ani_fadeIn">
-      <div>
-        <h1>암호화폐 모의투자</h1>
+    <div className="content_box content-coin ani_fadeIn">
+      <div className='content-title'>
+        <h2>암호화폐 모의투자</h2>
       </div>
-      <div>
+      <div className='coin-table'>
         <table className='table alignCenter'>
           <CoinTableHead data={ticker} />
           <CoinTableBody data={ticker} />
@@ -140,14 +141,24 @@ const DetailPage = (props) => {
   const [series, setSeries] = useState(null);
   const [options, setOptions] = useState(null);
   const [ticker, setTicker] = useState(null);
+  const [coolTime, setCoolTime] = useState(true);
 
   const [userCoinData, setUserCoinData] = useState({});
+  const [userTradeHistory, setUserTradeHistory] = useState([]);
 
   const [inputs, setInputs] = useState({
     buyAmount: '',
     sellAmount: '',
   });
 
+  const makeCoolTime = (time) => {
+    setCoolTime(false);
+    setTimeout(() => {
+      setCoolTime(true);
+    }, time)
+  }
+
+  // 현재 코인 페이지 타이틀
   const Title = (props) => {
     const { data } = props;
     const { opening_price, trade_price } = data;
@@ -187,6 +198,7 @@ const DetailPage = (props) => {
 
   // 캔들 데이터 get 후 그래프 그려냄 > 1초마다 반복
   useEffect(() => {
+    //유저의 코인 정보를 불러옴
     const initFetchData = async () => {
       const response = await axios.request({
         method: 'get',
@@ -197,12 +209,15 @@ const DetailPage = (props) => {
       });
 
       if (response.data.result) {
+        const { result } = response.data;
+
         const newUserCoinData = { ...userCoinData }
-        newUserCoinData.balance = response.data.result.money;
-        newUserCoinData.coinAmount = response.data.result.amount;
-        newUserCoinData.price = response.data.result.price;
+        newUserCoinData.balance = result.money;
+        newUserCoinData.coinAmount = result.amount;
+        newUserCoinData.price = result.price;
 
         setUserCoinData(newUserCoinData);
+        setUserTradeHistory(result.history);
 
       }
     }
@@ -308,8 +323,13 @@ const DetailPage = (props) => {
 
   }, [coin, refresh]);
 
+  // 코인 거래 요청 함수
   const reqTrade = async (event, tradeType) => {
     event.preventDefault();
+
+    if (!coolTime) throw new Error('연속으로 요청할 수 없습니다.');
+    makeCoolTime(1500);
+
     let inputValue;
     if (tradeType === 'buy') {
       inputValue = Number(event.target.buyAmount.value);
@@ -318,8 +338,7 @@ const DetailPage = (props) => {
     }
 
     try {
-      if (isNaN(inputValue)) throw new Error('03');
-      console.log(inputValue)
+      if (isNaN(inputValue)) throw new Error('숫자만 입력해주세요');
 
       const response = await axios.request({
         method: 'post',
@@ -345,13 +364,65 @@ const DetailPage = (props) => {
         setLgnFrmAct(true);
         setBgDarkAct(true);
       };
-
     }
+  }
+
+  // 코인 히스토리 컴포넌트
+  const History = () => {
+    const THead = () => {
+      return (
+        <thead>
+          <tr>
+            <th className='width40'>순번</th>
+            <th className='width40'>거래종류</th>
+            <th className='width200'>거래량</th>
+            <th className='width100'>거래가격</th>
+            <th className='width100'>총 거래금액</th>
+            <th className='width100'>거래시간</th>
+          </tr>
+        </thead>
+      )
+    }
+
+    const TBody = () => {
+      const Tr = () => {
+        return userTradeHistory.map((e, i) => {
+          const dateKST = new Date(e.date);
+          dateKST.setHours(dateKST.getHours() + 9);
+          const dateKST_String = dateKST.toLocaleString();
+
+          return (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              <td>{e.trading ? '구매' : '판매'}</td>
+              <td>{e.amount}</td>
+              <td>{e.price}</td>
+              <td>{e.amount * e.price}</td>
+              <td>{dateKST_String}</td>
+            </tr>
+          )
+        })
+      }
+
+      return (
+        <tbody>
+          <Tr />
+        </tbody>
+      )
+    }
+
+    return (
+      <table>
+        <THead />
+        <TBody />
+      </table>
+    );
   }
 
   return series && options && ticker ? (
     <div className='content_box coin-datail'>
 
+      {/* 타이틀영역 */}
       <div className='coin-title'>
         <div className='text-area'>
           <Title data={ticker}></Title>
@@ -367,14 +438,15 @@ const DetailPage = (props) => {
             </button>
             <button onClick={() => { setCoinPage(['main']) }}>메인으로</button>
           </div>
-
         </div>
       </div>
 
+      {/* 차트영역 */}
       <div id="coin-chart">
         <ReactApexChart options={options} series={series} type="candlestick" height={300} width={'100%'} />
       </div>
 
+      {/* 모의 거래 요청 영역 */}
       <div className='trade'>
         <div className='trade-type'>
           <form onSubmit={(e) => reqTrade(e, 'buy')}>
@@ -469,6 +541,11 @@ const DetailPage = (props) => {
           </form>
         </div>
 
+      </div>
+
+      {/* 모의 거래 히스토리 영역 */}
+      <div className='history'>
+        <History />
       </div>
 
     </div>

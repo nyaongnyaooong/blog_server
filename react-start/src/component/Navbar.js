@@ -1,16 +1,18 @@
-import '../css/navbar.css'
+import '../css/Navbar.css'
 
 const Nav = (props) => {
   const { btnList, btnAct, stateFuncs, userData } = props;
   const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage, setRefreshPage } = stateFuncs;
-
+  console.log(btnAct)
   //left section (로고, 이름)
   const BtnLeftSect = () => {
     return (
 
       <button className={"btn_nav_page " + (btnAct === 0 ? "nav_btn_active" : "nav_btn_deactive")} onClick={() => {
         setPage(0);
-      }}>NyaongNyaooong</button>
+      }}>
+        NyaongNyaooong
+      </button>
 
     )
   }
@@ -21,13 +23,12 @@ const Nav = (props) => {
     for (let i = 1; i < btnList.length - 1; i++) {
       const btnName = btnList[i];
       let btnClass = "btn_nav_page ";
-
+      
       (i === btnAct) ? btnClass += "nav_btn_active" : btnClass += "nav_btn_deactive";
       btnArray.push(
         <li key={i}>
           <button className={btnClass} onClick={() => {
-            setRefreshPage(i);
-            setPage(-1);
+            setPage(i);
           }}>
             {btnName}
           </button>
@@ -96,3 +97,7 @@ const Nav = (props) => {
 };
 
 export default Nav;
+
+
+
+

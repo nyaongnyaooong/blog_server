@@ -16,7 +16,8 @@ import { createToken, createSignature } from './modules/jwt';
   Types
 */
 import { Market, Ticker, Payload } from './index.d';
-import { UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable } from './modules/database';
+import { UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable, TradeSQLTable } from './modules/database';
+import { ResultSetHeader } from 'mysql2';
 
 // Express
 const app = express();
@@ -59,6 +60,11 @@ const jwtExam: (token: string) => Payload | false = (token) => {
   return payload;
 }
 
+/**
+ * 에러 코드 => 에러 메세지 변환 함수
+ * @param errorCode 
+ * @returns errorMessage
+ */
 const alertMessage: (errorCode: string) => string = (errorCode) => {
   if (errorCode === '01') return '제목이나 내용을 입력하지 않았습니다';
   if (errorCode === '03') return '로그인 정보가 없습니다';
@@ -79,6 +85,7 @@ const alertMessage: (errorCode: string) => string = (errorCode) => {
 
 const gMarket: Market[] = [];
 let gTicker: Ticker[] = [];
+
 // 코인 ticker 데이터 request 함수
 const getTicker: () => void = async () => {
   try {
@@ -115,7 +122,6 @@ const getTicker: () => void = async () => {
     console.log(error)
   }
 }
-
 getTicker();
 
 
@@ -134,13 +140,6 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 
 //static file
 app.use(express.static('public'));
-
-
-
-app.listen(app.get('port'), () => {
-  console.log(`server is running on ${app.get('port')}`);
-});
-
 
 // 토큰 검증 미들웨어
 app.use((req, res, next) => {
@@ -201,6 +200,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 })
 
+// 코인 마켓 데이터 및 티커 데이터 api
 app.get('/coin/data', async (req, res) => {
   const resData = {
     market: gMarket,
@@ -267,14 +267,23 @@ app.get("/board/data", async (req, res) => {
 
   try {
     await mySQL.beginTransaction();
+
     const [resSQL] = await mySQL.query<BoardSQLTable[]>(`SELECT *
-    FROM board
-    ORDER BY board_serial DESC
+      FROM board
+      ORDER BY board_serial DESC
+    `);
+
+    const [resSQL2] = await mySQL.query<BoardSQLTable[]>(`SELECT board_serial, COUNT(*) AS comments
+      FROM comment 
+      GROUP BY board_serial;
     `);
 
     res.send({
       result: {
-        sqlData: resSQL,
+        sqlData: {
+          boardList: resSQL,
+          commentsList: resSQL2
+        },
         userData: req.user,
       },
       error: false,
@@ -459,7 +468,7 @@ app.get('/board/:serial', async (req, res) => {
 
 
 // board delete
-app.delete('/board/delete/:serial', async (req, res) => {
+app.delete('/board/:serial', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   const { serial: reqPostSerial } = req.params;
@@ -484,21 +493,21 @@ app.delete('/board/delete/:serial', async (req, res) => {
     // 게시물 작성자와 로그인한 유저가 불일치
     if (userSerial !== user_serial && userID !== 'admin') throw new Error('05');
 
-    const [resSQL2] = await mySQL.query(`DELETE FROM board
+    const [resSQL2] = await mySQL.query(`DELETE FROM comment
     WHERE board_serial='${reqPostSerial}';`);
+
+    const [resSQL3] = await mySQL.query(`DELETE FROM board
+    WHERE board_serial='${reqPostSerial}';`);
+
+    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
+    if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
 
     await mySQL.commit();
 
-    if ('affectedRows' in resSQL2 && resSQL2.affectedRows) {
-      res.send({
-        result: true,
-        error: false
-      });
-    }
-    else {
-      // DB 업데이트 실패
-      throw new Error('06');
-    }
+    res.send({
+      result: true,
+      error: false
+    });
 
   } catch (error) {
     await mySQL.rollback();
@@ -519,7 +528,7 @@ app.delete('/board/delete/:serial', async (req, res) => {
 });
 
 // 댓글 추가 api
-app.post('/comment/add', async (req, res) => {
+app.post('/comment', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
@@ -540,7 +549,7 @@ app.post('/comment/add', async (req, res) => {
 
     await mySQL.beginTransaction();
 
-    const [resSQL] = await mySQL.query(
+    const [resSQL] = await mySQL.query<ResultSetHeader>(
       `INSERT INTO comment(user_serial, user_id, board_serial, content, date, reply)
       VALUES(${req.user.serial}, '${req.user.id}', ${reqSerial}, '${reqContent}', NOW(), ${reqCommentType})`
     );
@@ -548,11 +557,14 @@ app.post('/comment/add', async (req, res) => {
     await mySQL.commit();
 
     // DB 업데이트 실패
+    // if (resSQL instanceof ResultSetHeader)
     if (!('affectedRows' in resSQL) || !resSQL.affectedRows) throw new Error('06');
 
     res.send({
       result: {
-        sqlData: true,
+        sqlData: {
+          insertId: resSQL.insertId
+        },
         userData: req.user
       },
       error: false
@@ -577,13 +589,14 @@ app.post('/comment/add', async (req, res) => {
 });
 
 // 댓글 수정 api
-app.put('/comment/put', async (req, res) => {
+app.patch('/comment', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
-    const { serial: commentSerial, content: commentTitle } = req.body;
+    const { reqContent } = req.body;
+    const reqSerial = Number(req.body.reqSerial);
     // body 데이터가 정상적으로 들어오지 않음
-    if (typeof commentSerial !== 'string' || typeof commentTitle !== 'string') throw new Error('01');
+    if (isNaN(reqSerial) || typeof reqContent !== 'string' || reqContent === '') throw new Error('01');
 
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
@@ -596,7 +609,7 @@ app.put('/comment/put', async (req, res) => {
     const [resSQL1] = await mySQL.query<CommentSQLTable[]>(
       `SELECT *
       From comment
-      WHERE comment_serial=${commentSerial}`
+      WHERE comment_serial=${reqSerial}`
     )
 
     // 댓글이 존재하지 않음
@@ -608,8 +621,8 @@ app.put('/comment/put', async (req, res) => {
 
     const [resSQL2] = await mySQL.query(
       `UPDATE comment
-      SET content=${commentTitle}
-      WHERE comment_serial=${commentSerial}`
+      SET content='${reqContent}'
+      WHERE comment_serial=${reqSerial}`
     )
 
     await mySQL.commit();
@@ -619,7 +632,7 @@ app.put('/comment/put', async (req, res) => {
 
     res.send({
       result: {
-        sqlData: resSQL2,
+        sqlData: true,
         userData: req.user
       },
       error: false
@@ -782,7 +795,7 @@ app.get('/google/redirect', async (req, res) => {
 })
 
 // 댓글 삭제 api
-app.delete('/comment/delete/:serial', async (req, res) => {
+app.delete('/comment/:serial', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
@@ -809,18 +822,47 @@ app.delete('/comment/delete/:serial', async (req, res) => {
     // 댓글 작성 유저와 로그인한 유저가 동일하지 않음
     if (resSQL1[0].user_serial !== userSerial && userID !== 'admin') throw new Error('05');
 
-    const [resSQL2] = await mySQL.query(`DELETE FROM comment 
-      WHERE comment_serial=${reqCommentSerial}`
+    // 대댓글이 있는지 확인
+    const [resSQL2] = await mySQL.query<CommentSQLTable[]>(`SELECT *
+      FROM comment
+      WHERE reply=${reqCommentSerial}`
     );
-    await mySQL.commit();
 
-    // DB 업데이트 실패
-    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
+    if (resSQL2.length > 0) { // 대댓글이 있으면
+      // erase 업데이트
+      const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`UPDATE comment
+        SET erase=1
+        WHERE comment_serial=${reqCommentSerial}`
+      );
 
-    res.send({
-      result: true,
-      error: false
-    })
+      // DB 업데이트 실패
+      if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
+
+      await mySQL.commit();
+
+      res.send({
+        result: {
+          commentState: 'erase'
+        },
+        error: false
+      })
+    } else {  //대댓글이 없으면
+      // 삭제
+      const [resSQL4] = await mySQL.query(`DELETE FROM comment 
+        WHERE comment_serial=${reqCommentSerial}`
+      );
+      // DB 업데이트 실패
+      if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
+
+      await mySQL.commit();
+
+      res.send({
+        result: {
+          commentState: 'delete'
+        },
+        error: false
+      })
+    }
 
   } catch (error) {
     await mySQL.rollback();
@@ -841,6 +883,293 @@ app.delete('/comment/delete/:serial', async (req, res) => {
     mySQL.release();
   }
 });
+
+// // 댓글 삭제 api
+// app.delete('/comment/delete/:serial', async (req, res) => {
+//   const mySQL = await mySQLPool.getConnection();
+
+//   try {
+//     // 올바르지않은 path
+//     if (!req.params.serial || isNaN(Number(req.params.serial))) throw new Error('01');
+//     const reqCommentSerial = Number(req.params.serial);
+
+//     const { serial: userSerial, id: userID } = req.user;
+//     // 유저 검증 미들웨어 문제
+//     if (!req.user || !userID) throw new Error('02');
+//     // 로그인하지 않음
+//     if (!userSerial || userID === 'anonymous') throw new Error('03');
+
+//     await mySQL.beginTransaction();
+
+//     const [resSQL1] = await mySQL.query<CommentSQLTable[]>(`SELECT *
+//       FROM comment
+//       WHERE comment_serial=${reqCommentSerial}`
+//     );
+
+//     // 댓글이 존재하지 않음
+//     if (!resSQL1[0]) throw new Error('04');
+
+//     // 댓글 작성 유저와 로그인한 유저가 동일하지 않음
+//     if (resSQL1[0].user_serial !== userSerial && userID !== 'admin') throw new Error('05');
+
+
+//     // 대댓글인지확인
+//     // 대댓글이면
+//     if (resSQL1[0].reply) {
+//       //삭제
+//       const [resSQL2] = await mySQL.query(`DELETE FROM comment 
+//       WHERE comment_serial=${reqCommentSerial}`
+//       );
+
+//       // DB 업데이트 실패
+//       if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
+
+//       // 상위 댓글의 대댓글 검색
+//       const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`SELECT *
+//         FROM comment
+//         WHERE reply=${resSQL1[0].reply}`
+//       );
+
+//       // 상위 댓글확인
+//       const [resSQL4] = await mySQL.query<CommentSQLTable[]>(`SELECT *
+//       FROM comment
+//       WHERE comment_serial=${resSQL1[0].reply}`
+//       );
+
+//       // 상위 댓글의 대댓글이 없고 상위 댓글의 erase가 true라면
+//       if (resSQL3.length === 0 || resSQL4[0].erase) {
+//         //상위 댓글도 삭제
+//         const [resSQL5] = await mySQL.query(`DELETE FROM comment 
+//         WHERE comment_serial=${resSQL1[0].reply}`
+//         );
+
+//         // DB 업데이트 실패
+//         if (!('affectedRows' in resSQL5) || !resSQL5.affectedRows) throw new Error('06');
+//       }
+
+//       await mySQL.commit();
+//       res.send({
+//         result: {
+//           commentState: 'delete'
+//         },
+//         error: false
+//       })
+//     } else {
+
+//       // 대댓글이 있는지 확인
+//       const [resSQL2] = await mySQL.query<CommentSQLTable[]>(`SELECT *
+//       FROM comment
+//       WHERE reply=${reqCommentSerial}`
+//       );
+
+//       if (resSQL2.length > 0) { // 대댓글이 있으면
+//         // erase 업데이트
+//         const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`UPDATE comment
+//         SET erase=1
+//         WHERE comment_serial=${reqCommentSerial}`
+//         );
+
+//         // DB 업데이트 실패
+//         if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
+
+//         await mySQL.commit();
+
+//         res.send({
+//           result: {
+//             commentState: 'erase'
+//           },
+//           error: false
+//         })
+//       } else {  //대댓글이 없으면
+//         // 삭제
+//         const [resSQL4] = await mySQL.query(`DELETE FROM comment 
+//         WHERE comment_serial=${reqCommentSerial}`
+//         );
+//         // DB 업데이트 실패
+//         if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
+
+//         await mySQL.commit();
+
+//         res.send({
+//           result: {
+//             commentState: 'delete'
+//           },
+//           error: false
+//         })
+//       }
+
+//     }
+
+//   } catch (error) {
+//     await mySQL.rollback();
+
+//     let errorMessage = '알 수 없는 오류입니다';
+//     if (error instanceof Error) {
+//       errorMessage = alertMessage(error.message);
+//       if (error.message = '01') errorMessage = '요청이 잘못되었습니다';
+//     } else {
+//       errorMessage = String(error);
+//     }
+
+//     res.send({
+//       result: false,
+//       error: errorMessage
+//     });
+//   } finally {
+//     mySQL.release();
+//   }
+// });
+
+// // 댓글 삭제 api 리뉴얼
+// app.delete('/comment/:serial', async (req, res) => {
+//   const mySQL = await mySQLPool.getConnection();
+
+//   try {
+
+//     // 올바르지않은 path
+//     if (!req.params.serial || isNaN(Number(req.params.serial)) || isNaN(Number(req.body.boardSerial))) throw new Error('01');
+//     const reqCommentSerial = Number(req.params.serial);
+//     const reqBoardSerial = Number(req.body.boardSerial);
+
+//     const { serial: userSerial, id: userID } = req.user;
+//     // 유저 검증 미들웨어 문제
+//     if (!req.user || !userID) throw new Error('02');
+//     // 로그인하지 않음
+//     if (!userSerial || userID === 'anonymous') throw new Error('03');
+
+//     await mySQL.beginTransaction();
+
+//     const [comments] = await mySQL.query<CommentSQLTable[]>(`SELECT *
+//       FROM comment
+//       WHERE board_serial=${reqBoardSerial}`
+//     );
+
+//     // 댓글이 존재하지 않음
+//     if (comments.length) throw new Error('04');
+
+//     // 요청 댓글
+//     const reqCommentArr: CommentSQLTable[] = [];
+//     for (let i = 0; i < comments.length; i++) {
+//       if (comments[i].comment_serial === reqCommentSerial) {
+
+//         reqCommentArr.push(comments[i]);
+//         break;
+//       }
+//     }
+//     const reqComment = reqCommentArr[0];
+
+//     // 댓글 작성 유저와 로그인한 유저가 동일하지 않음
+//     if (reqComment.user_serial !== userSerial && userID !== 'admin') throw new Error('05');
+
+//     // 대댓글인지확인
+//     // 대댓글이면
+//     if (reqComment.reply) {
+//       //삭제
+//       const [resSQL] = await mySQL.query(`DELETE FROM comment 
+//         WHERE comment_serial=${reqCommentSerial}`
+//       );
+
+//       // DB 업데이트 실패
+//       if (!('affectedRows' in resSQL) || !resSQL.affectedRows) throw new Error('06');
+
+//       // 상위 댓글의 대댓글 검색
+//       const replys: CommentSQLTable[] = [];
+//       comments.forEach(e => {
+//         if (e.reply === reqComment.reply) replys.push(e);
+//       });
+
+//       // 상위 댓글확인
+//       const upperCommentArr: CommentSQLTable[] = [];
+//       comments.forEach(e => {
+//         if (e.comment_serial === reqComment.reply) upperCommentArr.push(e);
+//       });
+
+//       const upperComment = upperCommentArr[0];
+
+//       // 상위 댓글의 대댓글이 없고 상위 댓글의 erase가 true라면
+//       if (replys.length < 2 || upperComment.erase) {
+//         //상위 댓글도 삭제
+//         const [resSQL2] = await mySQL.query(`DELETE FROM comment 
+//           WHERE comment_serial=${upperComment.comment_serial}`
+//         );
+
+//         // DB 업데이트 실패
+//         if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
+//       }
+
+//       await mySQL.commit();
+//       res.send({
+//         result: {
+//           commentState: 'delete'
+//         },
+//         error: false
+//       })
+//     } else {
+
+//       // 대댓글이 있는지 확인
+//       const replys: CommentSQLTable[] = [];
+//       for (let i = 0; i < comments.length; i++) {
+//         if (comments[i].reply === reqCommentSerial) replys.push(comments[i]);
+//       }
+
+//       if (replys.length > 0) { // 대댓글이 있으면
+//         // erase 업데이트
+//         const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`UPDATE comment
+//         SET erase=1
+//         WHERE comment_serial=${reqCommentSerial}`
+//         );
+
+//         // DB 업데이트 실패
+//         if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
+
+//         await mySQL.commit();
+
+//         res.send({
+//           result: {
+//             commentState: 'erase'
+//           },
+//           error: false
+//         })
+//       } else {  //대댓글이 없으면
+//         // 삭제
+//         const [resSQL4] = await mySQL.query(`DELETE FROM comment 
+//         WHERE comment_serial=${reqCommentSerial}`
+//         );
+//         // DB 업데이트 실패
+//         if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
+
+//         await mySQL.commit();
+
+//         res.send({
+//           result: {
+//             commentState: 'delete'
+//           },
+//           error: false
+//         })
+//       }
+
+//     }
+
+//   } catch (error) {
+//     await mySQL.rollback();
+
+//     let errorMessage = '알 수 없는 오류입니다';
+//     if (error instanceof Error) {
+//       errorMessage = alertMessage(error.message);
+//       if (error.message = '01') errorMessage = '요청이 잘못되었습니다';
+//     } else {
+//       errorMessage = String(error);
+//     }
+
+//     res.send({
+//       result: false,
+//       error: errorMessage
+//     });
+//   } finally {
+//     mySQL.release();
+//   }
+// });
+
 
 // 유저 인증 정보
 app.get('/user/verify', (req, res) => {
@@ -952,11 +1281,21 @@ app.get('/user/coin', async (req, res) => {
     // DB 가져오기 실패
     if (!resSQL2[0]) throw new Error('04');
 
+    // 요청한 유저의 거래 히스토리
+    const [resSQL3] = await mySQL.query<TradeSQLTable[]>(
+      `SELECT *
+      FROM trade
+      WHERE user_serial=${req.user.serial} AND market='${reqMarket}'
+      ORDER BY trade_serial DESC
+      LIMIT 5`
+    );
+
     res.send({
       result: {
         price: resSQL1[0]?.price || 0,
         amount: resSQL1[0]?.amount || 0,
-        money: resSQL2[0].money
+        money: resSQL2[0].money,
+        history: resSQL3
       },
       error: false,
     });
@@ -1098,8 +1437,8 @@ app.post('/user/coin/trade', async (req, res) => {
 
     // 매매 히스토리 기록
     const tradeType = reqType === 'buy' ? true : false;
-    const [resSQL5] = await mySQL.query(`INSERT INTO trade(user_serial, trading, market, date)
-      VALUES(${userSerial}, ${tradeType}, '${reqMarketCode}', NOW())`
+    const [resSQL5] = await mySQL.query(`INSERT INTO trade(user_serial, market, trading, amount, price, date)
+      VALUES(${userSerial}, '${reqMarketCode}', ${tradeType}, ${reqAmount}, ${reqMarketPrice} , NOW())`
     );
 
     // DB 추가 실패
@@ -1142,4 +1481,8 @@ app.use((req, res, next) => { // 404 처리 부분
 app.use((err: any, req: Request, res: Response, next: NextFunction) => { // 에러 처리 부분
   console.error(err.stack); // 에러 메시지 표시
   res.status(500).send('서버 에러!'); // 500 상태 표시 후 에러 메시지 전송
+});
+
+app.listen(app.get('port'), () => {
+  console.log(`server is running on ${app.get('port')}`);
 });

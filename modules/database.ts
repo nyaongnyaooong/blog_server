@@ -41,7 +41,6 @@ interface CommentSQLTable extends RowDataPacket {
 }
 
 interface CoinSQLTable extends RowDataPacket {
-  coin_serial?: number,
   user_serial?: number,
   market?: string,
   price?: number,
@@ -53,8 +52,8 @@ interface TradeSQLTable extends RowDataPacket {
   user_serial?: number,
   market?: string,
   trading?: boolean,
-  amount?: boolean,
-  price?: boolean,
+  amount?: number,
+  price?: number,
   date?: string
 }
 

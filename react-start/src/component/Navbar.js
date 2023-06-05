@@ -1,3 +1,4 @@
+import axios from 'axios';
 import '../css/Navbar.css'
 
 const Nav = (props) => {
@@ -23,7 +24,7 @@ const Nav = (props) => {
     for (let i = 1; i < btnList.length - 1; i++) {
       const btnName = btnList[i];
       let btnClass = "btn_nav_page ";
-      
+
       (i === btnAct) ? btnClass += "nav_btn_active" : btnClass += "nav_btn_deactive";
       btnArray.push(
         <li key={i}>
@@ -46,8 +47,10 @@ const Nav = (props) => {
           <button className="btn_login_section" onClick={() => {
             setPage(btnList.length - 1);
           }}>{userData}</button>
-          <button className="btn_login_section" onClick={() => {
-            document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          <button className="btn_login_section" onClick={async () => {
+            // document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            const response = await axios.get('/logout');
+            console.log(response.data)
             setUserData('anonymous');
           }}>LogOut</button>
         </div>

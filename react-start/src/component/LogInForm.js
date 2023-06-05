@@ -64,9 +64,6 @@ const LogInForm = (props) => {
   const { active, stateFuncs } = props;
   const { setLgnFrmAct, setBgDarkAct, setUserData } = stateFuncs;
 
-  const [data, setData] = useState(null);
-
-
 
   const [inputID, setInputID] = useState('');
   const [inputPW, setInputPW] = useState('');
@@ -115,7 +112,6 @@ const LogInForm = (props) => {
       }
 
     } catch (err) {
-      console.log(err);
       setMessage(err.message);
       setTimeout(() => {
         setMessage('');
@@ -206,10 +202,47 @@ const RegisterForm = (props) => {
 
   const { active } = props;
 
+  const [message, setMessage] = useState('');
+  const [loginActive, setLoginActive] = useState(true);
+
+  const reqRegister = async (e) => {
+    e.preventDefault();
+    const regID = e.target.regID.value;
+    const regPW = e.target.regPW.value;
+
+    if (!loginActive) return
+
+    setLoginActive(false);
+    setTimeout(() => {
+      setLoginActive(true);
+    }, 1600)
+
+    const reqObject = {
+      regID,
+      regPW
+    }
+    try {
+      if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(regID)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
+      if (!regID) throw new Error('아이디를 입력해주세요');
+      if (!regPW) throw new Error('패스워드를 입력해주세요');
+
+      const response = await axios.post('/register/post', reqObject);
+
+      if (response.data.error) throw new Error(response.data.error);
+
+      window.location.href = window.location.origin;
+
+    } catch (err) {
+      setMessage(err.message);
+      setTimeout(() => {
+        setMessage('');
+      }, 1500)
+    }
+  }
 
   return (
     <div className={(active) ? "login_box ani_fadeInUp" : "login_box zhide"}>
-      <form action="/register/post" method="POST">
+      <form onSubmit={reqRegister}>
         <FormGroup />
 
         <FormGroup>
@@ -217,10 +250,9 @@ const RegisterForm = (props) => {
         </FormGroup>
 
         <FormGroup>
-          <span className="wrong_form">
-            {/* 회원가입 요청에 문제 발생시 여기에 메세지 표시 */}
-            ex Wrong Password
-          </span>
+          {
+            message ? <ErrorMessage message={message} /> : <></>
+          }
         </FormGroup>
 
         <FormGroup>

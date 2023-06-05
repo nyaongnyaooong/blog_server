@@ -56,13 +56,11 @@ const hashPW: HashPW = (pw, salt = undefined) => {
 
 // 로그인 요청
 router.post('/login/post', async (req, res) => {
-  type ReqBody = { loginID?: string, loginPW?: string };
-  const { loginID, loginPW }: ReqBody = req.body;
-  if (typeof mySQLPool === 'string') throw new Error(mySQLPool);
-
   const mySQL = await mySQLPool.getConnection();
 
   try {
+
+    const { loginID, loginPW } = req.body;
     if (!loginPW) throw new Error('no password');
     if (!loginID) throw new Error('no id');
     if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(loginID)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
@@ -128,13 +126,21 @@ router.post('/login/post', async (req, res) => {
         error: errorMessage,
       });
     }
-
-    res.send({
-      result: false,
-      error: String(error)
-    });
+  } finally {
+    mySQL.release();
   }
 });
+
+//로그아웃
+router.get('/logout', (req, res) => {
+  res.cookie('accessToken', '', {
+    path: '/',
+    httpOnly: true,
+    maxAge: 0
+  });
+
+  res.send(true)
+})
 
 
 //회원가입 요청
@@ -208,5 +214,152 @@ router.post('/register/post', async (req, res) => {
   }
 
 });
+
+
+router.patch('/user/password', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection();
+
+  try {
+    const { current, change } = req.body;
+    if (typeof current !== 'string' || typeof change !== 'string') throw new Error('');
+
+    const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
+
+    if (/google-\d+/.test(userID)) throw new Error('')
+
+    // 유저 정보 확인
+    const [resSQL1] = await mySQL.query<User[]>(`SELECT *
+      FROM user
+      WHERE user_serial='${userSerial}'
+    `);
+
+    // db에 ID가 존재하지 않음
+    if (!resSQL1[0]) throw new Error('01');
+    const { salt, hash } = resSQL1[0];
+
+    // 로그인 요청한 PW 해시화
+    const { result: hashResult, error: hashError } = hashPW(current, salt);
+    // 해시화 실패
+    if (hashError) throw new Error(hashError);
+    if (!hashResult) throw new Error('03');
+
+    const { key } = hashResult;
+    if (key != hash) throw new Error('02');
+
+    // 새로운 PW Hash화
+    const { result, error } = hashPW(change);
+
+    const { key: newHash, salt: newSalt } = result || { key: null, salt: null };
+    // 해시화에 실패 했을 경우 - key salt 생성 실패
+    if (!newHash || !newSalt) throw new Error('03');
+    // 해시화에 실패 했을 경우 - 기타 오류
+    if (error) throw new Error('03');
+
+    const [resSQL2] = await mySQL.query(
+      `UPDATE user
+      SET salt = '${newSalt}', hash = '${newHash}'
+      WHERE user_serial=${userSerial}`
+    )
+
+    await mySQL.commit();
+
+    res.cookie('accessToken', '', {
+      path: '/',
+      httpOnly: true,
+      maxAge: 0
+    });
+
+    res.send({
+      result: true,
+      error: false
+    })
+
+  } catch (err) {
+    await mySQL.rollback();
+  } finally {
+
+    mySQL.release();
+  }
+})
+
+router.delete('/user', async (req, res) => {
+  const mySQL = await mySQLPool.getConnection();
+
+  try {
+    const { serial: userSerial, id: userID } = req.user;
+    // 유저 검증 미들웨어 문제
+    if (!req.user || !userID) throw new Error('02');
+    // 로그인하지 않음
+    if (!userSerial || userID === 'anonymous') throw new Error('03');
+
+    // 유저 정보 확인
+    const [resSQL1] = await mySQL.query<User[]>(`
+      SELECT *
+      FROM user
+      WHERE user_serial='${userSerial}'
+    `);
+    console.log(resSQL1)
+
+    // db에 ID가 존재하지 않음
+    if (!resSQL1[0]) throw new Error('01');
+
+    const [resSQL2] = await mySQL.query(`
+      DELETE 
+      FROM comment 
+      WHERE user_serial=${userSerial}
+    `);
+
+    const [resSQL3] = await mySQL.query(`
+      DELETE 
+      FROM board
+      WHERE user_serial=${userSerial}
+    `);
+
+    const [resSQL4] = await mySQL.query(`
+      DELETE 
+      FROM trade
+      WHERE user_serial=${userSerial}
+    `);
+
+    const [resSQL5] = await mySQL.query(`
+      DELETE 
+      FROM coin
+      WHERE user_serial=${userSerial}
+    `);
+
+    const [resSQL6] = await mySQL.query(`
+      DELETE 
+      FROM user
+      WHERE user_serial=${userSerial}
+    `);
+
+
+    console.log(2)
+
+    await mySQL.commit();
+
+    res.cookie('accessToken', '', {
+      path: '/',
+      httpOnly: true,
+      maxAge: 0
+    });
+
+
+    res.send({
+      result: true,
+      error: false
+    })
+
+  } catch (err) {
+    await mySQL.rollback();
+  } finally {
+
+    mySQL.release();
+  }
+})
 
 module.exports = router;

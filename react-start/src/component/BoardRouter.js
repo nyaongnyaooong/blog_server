@@ -592,7 +592,7 @@ const BoardHome = (props) => {
   const { setBoardPage, setPostNumber, stateFunctions } = stateFuncs
 
   // 게시물 리스트
-  const [postList, setPostList] = useState([]);
+  const [postList, setPostList] = useState();
   const [userData, setUserData] = useState({});
 
   // thead 컴포넌트
@@ -676,7 +676,7 @@ const BoardHome = (props) => {
   }, []);
 
   // 게시물 리스트 데이터가 없을 경우에는 로딩 중 화면 표기
-  return postList.length ? (
+  return postList ? (
     <div className="content_box board-main ani_fadeIn">
       <div className='content-title'>
         <h2>자유 게시판</h2>

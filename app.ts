@@ -83,7 +83,13 @@ const alertMessage: (errorCode: string) => string = (errorCode) => {
   return '알 수 없는 오류입니다';
 }
 
+/*
+  Variables
+*/
+
+// KRW 전체 마켓 정보
 const gMarket: Market[] = [];
+// 전체 마켓에 대한 Ticker
 let gTicker: Ticker[] = [];
 
 // 코인 ticker 데이터 request 함수
@@ -209,15 +215,23 @@ app.get('/coin/data', async (req, res) => {
   res.send(resData);
 });
 
+// app.get('/logout', (req, res) => {
+//   console.log(123)
+//   res.cookie('accessToken', '', {
+//     path: '/',
+//     httpOnly: true,
+//     maxAge: 0
+//   });
 
+//   res.send(true)
+// })
 
 app.get('/domain', (req, res) => {
   res.send(process.env.DOMAIN);
 })
 
-
-// 코인 원화 충전 api
-app.post('/user/charge', async (req, res) => {
+// 유저 코인 정보 - 모든 마켓
+app.get('/user/coin/all', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
@@ -227,38 +241,41 @@ app.post('/user/charge', async (req, res) => {
     // 로그인하지 않음
     if (!userSerial || userID === 'anonymous') throw new Error('03');
 
-    const [resSQL] = await mySQL.query(
-      `UPDATE user
-      SET money=money+1000000, charge=charge+1
-      WHERE id='${userID}'`
+    await mySQL.beginTransaction();
+
+    // 요청한 마켓의 유저 코인정보
+    const [resSQL1] = await mySQL.query<CoinSQLTable[]>(
+      `SELECT *
+      FROM coin
+      WHERE user_serial=${userSerial}`
     );
-    await mySQL.commit();
 
-    if ('affectedRows' in resSQL && resSQL.affectedRows) {
-      res.send({
-        result: true,
-        error: false,
-      });
-    } else throw new Error('06');
-
+    res.send({
+      result: {
+        ticker: gMarket,
+        data: resSQL1
+      },
+      error: false,
+    });
   } catch (error) {
     await mySQL.rollback();
 
     let errorMessage = '알 수 없는 오류입니다';
     if (error instanceof Error) {
-      if (error.message === '01') errorMessage = '토큰 검증에 오류가 있습니다';
-      if (error.message === '02') errorMessage = '로그인 정보가 없습니다';
-      if (error.message === '06') errorMessage = 'DB 수정에 실패하였습니다';
+      errorMessage = alertMessage(error.message);
+    } else {
+      errorMessage = String(error);
     }
-    else errorMessage = String(error);
 
     res.send({
       result: false,
-      error: errorMessage,
+      error: errorMessage
     })
+
   } finally {
     mySQL.release();
   }
+
 });
 
 // 게시판 게시글 리스트 api
@@ -730,8 +747,8 @@ app.get('/google/redirect', async (req, res) => {
     if (resSQL1[0]?.user_serial) {
       user_serial = resSQL1[0].user_serial
     } else {
-      // 가입되어있지 않은 ID
 
+      // 가입되어있지 않은 ID
       // DB에 회원정보 생성
       const [resSQL2] = await mySQL.query(`INSERT INTO user(id) 
         VALUES('${userID}')`
@@ -1214,9 +1231,9 @@ app.get('/user/profile', async (req, res) => {
 
     await mySQL.beginTransaction();
     const [result] = await mySQL.query<UserSQLTable[]>(
-      `SELECT id, money, charge
+      `SELECT user_serial, id
       FROM user
-      WHERE id='${req.user.id}'`
+      WHERE user_serial='${userSerial}'`
     );
 
     // DB 읽기 오류
@@ -1266,23 +1283,13 @@ app.get('/user/coin', async (req, res) => {
 
     // 요청한 마켓의 유저 코인정보
     const [resSQL1] = await mySQL.query<CoinSQLTable[]>(
-      `SELECT price, amount
+      `SELECT market, price, amount
       FROM coin
-      WHERE market='${reqMarket}' AND user_serial=${userSerial}`
+      WHERE user_serial=${userSerial}`
     );
-
-    // 요청한 유저의 현금정보
-    const [resSQL2] = await mySQL.query<UserSQLTable[]>(
-      `SELECT money
-      FROM user
-      WHERE user_serial=${req.user.serial}`
-    );
-
-    // DB 가져오기 실패
-    if (!resSQL2[0]) throw new Error('04');
 
     // 요청한 유저의 거래 히스토리
-    const [resSQL3] = await mySQL.query<TradeSQLTable[]>(
+    const [resSQL2] = await mySQL.query<TradeSQLTable[]>(
       `SELECT *
       FROM trade
       WHERE user_serial=${req.user.serial} AND market='${reqMarket}'
@@ -1292,10 +1299,8 @@ app.get('/user/coin', async (req, res) => {
 
     res.send({
       result: {
-        price: resSQL1[0]?.price || 0,
-        amount: resSQL1[0]?.amount || 0,
-        money: resSQL2[0].money,
-        history: resSQL3
+        coin: resSQL1,
+        history: resSQL2
       },
       error: false,
     });
@@ -1330,7 +1335,7 @@ app.post('/user/coin/trade', async (req, res) => {
 
     // 요청값이 없거나 타입에 문제가 있음
     if (typeof reqType !== 'string' || typeof reqMarketCode !== 'string' || typeof reqAmount !== 'number') throw new Error('01');
-
+  
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
     if (!req.user || !userID) throw new Error('02');
@@ -1349,105 +1354,86 @@ app.post('/user/coin/trade', async (req, res) => {
     if (!reqMarketTicker) throw new Error('11')
     // 요청한 마켓의 현재가
     const { trade_price: reqMarketPrice } = reqMarketTicker;
-
+    
     await mySQL.beginTransaction();
 
     // 유저의 요청한 코인 보유 수량 불러오기
-    let [resSQL1] = await mySQL.query<CoinSQLTable[]>(`SELECT *
+    const [resSQL1] = await mySQL.query<CoinSQLTable[]>(`SELECT *
       FROM coin
-      WHERE user_serial=${userSerial} AND market='${reqMarketCode}'`
+      WHERE user_serial=${userSerial}`
     );
 
+    const marketIndex = resSQL1.findIndex((e) => {
+      return e.market === reqMarketCode;
+    })
+    
+    const reqMarketAsset: { market: string, price: number, amount: number } = { market: reqMarketCode, price: 0, amount: 0 };
+    if (marketIndex > -1) {
+      reqMarketAsset.price = resSQL1[marketIndex].price || 0
+      reqMarketAsset.amount = resSQL1[marketIndex].amount || 0
+    }
+    
+    const krwIndex = resSQL1.findIndex((e) => {
+      return e.market === 'KRW';
+    })
 
-    // 추후 평단가 및 수량 계산을 위해 undefined일 경우 0대입
-    const userOwnData = resSQL1[0] || {};
-    userOwnData.price = userOwnData?.price || 0;
-    userOwnData.amount = userOwnData?.amount || 0;
+    const krwAsset: { market: string, price: number, amount: number } = { market: 'KRW', price: 1, amount: 0 };
+    if (krwIndex > -1) krwAsset.amount = resSQL1[krwIndex].amount || 0;
 
     if (reqType === 'buy') {
-      // 유저의 현금 불러오기
-      let [resSQL2] = await mySQL.query<UserSQLTable[]>(`SELECT *
-        FROM user
-        WHERE user_serial=${userSerial}`
-      );
-
-      // DB 데이터 불러오기 실패함
-      if (!resSQL2[0]?.money) throw new Error('04');
-
-      // KRW이 충분하지 않음
-      if (resSQL2[0].money < reqAmount * reqMarketPrice) throw new Error('12');
-
       // 요청한 코인 수량 및 평단가 반영
-      userOwnData.price = (userOwnData.amount * userOwnData.price + reqMarketPrice * reqAmount) / (userOwnData.amount + reqAmount);
-      userOwnData.amount = userOwnData.amount + reqAmount;
-
-      // 현금 차감
-      const [resSQL3] = await mySQL.query(
-        `UPDATE user
-        SET money=money-${reqMarketPrice * reqAmount}
-        WHERE user_serial='${userSerial}'`
-      );
-
-      // DB 업데이트 실패
-      if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06')
+      const totalReqPrice = reqMarketPrice * reqAmount
+      reqMarketAsset.price = (reqMarketAsset.amount * reqMarketAsset.price + totalReqPrice) / (reqMarketAsset.amount + reqAmount);
+      reqMarketAsset.amount = reqMarketAsset.amount + reqAmount;
+      krwAsset.amount = krwAsset.amount - totalReqPrice;
 
     } else if (req.body.request === 'sell') {
-      // 보유한 코인 수량보다 요청한 수량이 많음
-      if (userOwnData.amount < reqAmount) throw new Error('13');
-
+      if(reqMarketAsset.amount < reqAmount) throw new Error('');
       // 요청한 코인 수량 및 평단가 반영
-      if (userOwnData.amount === reqAmount) userOwnData.price = 0;
-      else userOwnData.price = (userOwnData.amount * userOwnData.price - reqMarketPrice * reqAmount) / (userOwnData.amount - reqAmount);
-
-      userOwnData.amount = userOwnData.amount - reqAmount;
-
-      // 현금 증액
-      const [resSQL3] = await mySQL.query(`UPDATE user
-        SET money=money+${reqMarketPrice * reqAmount}
-        WHERE user_serial='${userSerial}'`
-      );
-
-      // DB 업데이트 실패
-      if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06')
+      const totalReqPrice = reqMarketPrice * reqAmount
+      const totalMarketAsset = reqMarketAsset.amount * reqMarketAsset.price
+      if (reqMarketAsset.amount === reqAmount) reqMarketAsset.price = 0;
+      else reqMarketAsset.price = (totalMarketAsset - totalReqPrice) / (reqMarketAsset.amount - reqAmount);
+      reqMarketAsset.amount = reqMarketAsset.amount - reqAmount;
+      krwAsset.amount = krwAsset.amount + totalReqPrice;
 
     } else {
       // 요청타입에 문제가 있음 - buy/sell 중 하나가 아님
       throw new Error('');
     }
 
-    // 보유 코인 수정
-    if (userOwnData.coin_serial) {  // 해당 마켓에 가지고 있는 코인이 있다면
-      const [resSQL4] = await mySQL.query(
-        `UPDATE coin
-        SET price=${userOwnData.price}, amount=${userOwnData.amount}
-        WHERE user_serial='${userSerial}' AND market='${reqMarketCode}'`
-      )
+    // 보유 코인 및 원화 수정
+    const [resSQL2] = await mySQL.query(`
+      INSERT INTO coin(user_serial, market, price, amount)
+      VALUES
+        (${userSerial}, '${reqMarketCode}', ${reqMarketAsset.price}, ${reqMarketAsset.amount}),
+        (${userSerial}, 'KRW', 1, ${krwAsset.amount})
+      ON DUPLICATE KEY UPDATE 
+        price=VALUES(price), 
+        amount=VALUES(amount)`
+    );
 
-      // DB 업데이트 실패
-      if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
-    } else {  // 해당 마켓에 가지고 있는 코인이 없다면
-      const [resSQL4] = await mySQL.query(
-        `INSERT INTO coin(user_serial, market, price, amount)
-        VALUES(${userSerial}, '${reqMarketCode}', ${userOwnData.price}, ${userOwnData.amount})`
-      );
-
-      // DB 추가 실패
-      if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
-    }
+    // DB 추가 실패
+    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
 
     // 매매 히스토리 기록
     const tradeType = reqType === 'buy' ? true : false;
-    const [resSQL5] = await mySQL.query(`INSERT INTO trade(user_serial, market, trading, amount, price, date)
+    const [resSQL3] = await mySQL.query(`INSERT INTO trade(user_serial, market, trading, amount, price, date)
       VALUES(${userSerial}, '${reqMarketCode}', ${tradeType}, ${reqAmount}, ${reqMarketPrice} , NOW())`
     );
 
     // DB 추가 실패
-    if (!('affectedRows' in resSQL5) || !resSQL5.affectedRows) throw new Error('06');
+    if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
+
+    const [resSQL4] = await mySQL.query<CoinSQLTable[]>(`SELECT *
+      FROM coin
+      WHERE user_serial=${userSerial}`
+    );
 
     await mySQL.commit();
 
     res.send({
-      result: true,
+      result: resSQL4,
       error: false,
     });
 

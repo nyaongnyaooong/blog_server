@@ -8,8 +8,8 @@ import ReactApexChart from "react-apexcharts";
 const MainPage = (props) => {
   const { stateFuncs } = props;
   const { setCoinPage, setMarketName } = stateFuncs;
-  const [market, setMarket] = useState(null);
   const [ticker, setTicker] = useState(null);
+  const [sortType, setSortType] = useState(null);
 
   // 코인데이터 주기적으로 받아옴
   useEffect(() => {
@@ -20,10 +20,14 @@ const MainPage = (props) => {
           method: 'get',
           url: '/coin/data'
         }
-        const res = await axios.request(option);
+        const response = await axios.request(option);
+        const { ticker, market } = response.data;
 
-        setTicker(res.data.ticker);
-        setMarket(res.data.market);
+        ticker.forEach((e, i) => {
+          e.korean_name = market[i].korean_name;
+        })
+
+        setTicker(ticker);
       } catch (error) {
 
       }
@@ -44,12 +48,27 @@ const MainPage = (props) => {
     return (
       <thead>
         <tr>
-          <th className='width40'>순번</th>
-          <th className='width200'>종목</th>
-          <th className='width100'>기호</th>
-          <th className='width100'>현재가</th>
-          <th className='width100'>전일대비</th>
-          <th className='width150'>거래대금(24H)</th>
+          <th>순번</th>
+          <th onClick={() => {
+            if (sortType === 'marketUp') setSortType('marketDown');
+            else setSortType('marketUp');
+          }}>종목</th>
+          <th onClick={() => {
+            if (sortType === 'codeUp') setSortType('codeDown');
+            else setSortType('codeUp');
+          }}>기호</th>
+          <th onClick={() => {
+            if (sortType === 'priceUp') setSortType('priceDown');
+            else setSortType('priceUp');
+          }}>현재가</th>
+          <th onClick={() => {
+            if (sortType === 'displacementUp') setSortType('displacementDown');
+            else setSortType('displacementUp');
+          }}>전일대비</th>
+          <th onClick={() => {
+            if (sortType === 'accUp') setSortType('accDown');
+            else setSortType('accUp');
+          }}>거래대금(24H)</th>
         </tr>
       </thead>
     )
@@ -62,14 +81,72 @@ const MainPage = (props) => {
     const Href = (props) => {
       const { page, children } = props
       return (
-        <span onClick={(event) => {
-          event.preventDefault();
+        <span onClick={() => {
           setCoinPage([page]);
           setMarketName(children);
         }}>
           {children}
         </span>
       )
+    }
+
+    if (sortType === 'marketUp') {
+      data.sort((a, b) => {
+        if (a.korean_name < b.korean_name) return -1;
+        if (a.korean_name > b.korean_name) return 1;
+        return 0;
+      });
+    }
+    if (sortType === 'marketDown') {
+      data.sort((b, a) => {
+        if (a.korean_name < b.korean_name) return -1;
+        if (a.korean_name > b.korean_name) return 1;
+        return 0;
+      });
+    }
+    if (sortType === 'codeUp') {
+      data.sort((a, b) => {
+        if (a.market < b.market) return -1;
+        if (a.market > b.market) return 1;
+        return 0;
+      });
+    }
+    if (sortType === 'codeDown') {
+      data.sort((b, a) => {
+        if (a.market < b.market) return -1;
+        if (a.market > b.market) return 1;
+        return 0;
+      });
+    }
+    if (sortType === 'priceUp') {
+      data.sort((a, b) => {
+        return a.trade_price - b.trade_price;
+      });
+    }
+    if (sortType === 'priceDown') {
+      data.sort((b, a) => {
+        return a.trade_price - b.trade_price;
+      });
+    }
+    if (sortType === 'displacementUp') {
+      data.sort((a, b) => {
+        return (a.trade_price - a.opening_price) / a.opening_price - (b.trade_price - b.opening_price) / b.opening_price;
+      });
+    }
+    if (sortType === 'displacementDown') {
+      data.sort((b, a) => {
+        return (a.trade_price - a.opening_price) / a.opening_price - (b.trade_price - b.opening_price) / b.opening_price;
+      });
+    }
+    if (sortType === 'accUp') {
+      data.sort((a, b) => {
+        return a.acc_trade_price_24h - b.acc_trade_price_24h;
+      });
+    }
+    if (sortType === 'accDown') {
+      data.sort((b, a) => {
+        return a.acc_trade_price_24h - b.acc_trade_price_24h;
+      });
     }
 
     const array = [];
@@ -84,7 +161,7 @@ const MainPage = (props) => {
           {/* 순번 */}
           <td className='alignCenter'>{idx + 1}</td>
           {/* 종목 */}
-          <td className='alignCenter'><Href page={elm.market}>{market[idx].korean_name}</Href></td>
+          <td className='alignCenter'><Href page={elm.market}>{elm.korean_name}</Href></td>
           {/* 기호 */}
           <td className='alignCenter'><Href page={elm.market}>{elm.market}</Href></td>
           {/* 현재가 */}
@@ -132,7 +209,7 @@ const MainPage = (props) => {
 const DetailPage = (props) => {
   // coin: 어떤 코인의 디테일을 표시할 것인가?
   // stateFuncs: 뒤로 돌아가기용
-  const coin = props.coin;
+  const [currentMarketCode] = props.coin;
 
   const { marketName, stateFuncs, refresh, stateFunctions } = props;
   const { setCoinPage, setAutoRefresh } = stateFuncs;
@@ -179,56 +256,53 @@ const DetailPage = (props) => {
     return (
       <div>
         <span>
-          {'[' + coin + '] ' + marketName + ' '}
+          {'[' + currentMarketCode + '] ' + marketName + ' '}
         </span>
         {priceTag}
       </div>
     );
   }
 
-  useEffect(() => {
-    if (ticker) {
-      const newUserCoinData = { ...userCoinData }
-      const balance = newUserCoinData.balance || 0;
-      const price = ticker.trade_price || 1;
-      newUserCoinData.maxBuy = parseInt(balance / price * 10000) / 10000;
-      setUserCoinData(newUserCoinData);
+
+  //유저의 코인 정보를 불러옴
+  const getUserCoinData = async () => {
+    const response = await axios.request({
+      method: 'get',
+      url: '/user/coin',
+      params: {
+        market: currentMarketCode,
+      }
+    });
+
+    if (response.data.result) {
+      const { coin: userAsset, history } = response.data.result;
+
+      const marketAssetIdx = userAsset.findIndex((e) => {
+        return e.market === currentMarketCode;
+      })
+      const marketAsset = userAsset[marketAssetIdx];
+
+
+      const newState = marketAsset ?
+        { amount: marketAsset.amount, price: marketAsset.price } :
+        { amount: 0, price: 0 }
+
+      setUserCoinData(newState);
+      setUserTradeHistory(history);
     }
-  }, [coin, ticker])
+  }
+
 
   // 캔들 데이터 get 후 그래프 그려냄 > 1초마다 반복
   useEffect(() => {
-    //유저의 코인 정보를 불러옴
-    const initFetchData = async () => {
-      const response = await axios.request({
-        method: 'get',
-        url: '/user/coin',
-        params: {
-          market: coin[0],
-        }
-      });
-
-      if (response.data.result) {
-        const { result } = response.data;
-
-        const newUserCoinData = { ...userCoinData }
-        newUserCoinData.balance = result.money;
-        newUserCoinData.coinAmount = result.amount;
-        newUserCoinData.price = result.price;
-
-        setUserCoinData(newUserCoinData);
-        setUserTradeHistory(result.history);
-
-      }
-    }
-    initFetchData();
+    getUserCoinData();
 
     const fetchData = async (count) => {
       try {
         // 캔들데이터
         let response = await axios.request({
           method: 'get',
-          url: 'https://api.upbit.com/v1/candles/minutes/1?market=' + coin + '&count=' + count
+          url: 'https://api.upbit.com/v1/candles/minutes/1?market=' + currentMarketCode + '&count=' + count
         });
         const candle = response.data;
         const dataArray = [];
@@ -250,7 +324,7 @@ const DetailPage = (props) => {
         // ticker 데이터
         response = await axios.request({
           method: 'get',
-          url: 'https://api.upbit.com/v1/ticker?markets=' + coin
+          url: 'https://api.upbit.com/v1/ticker?markets=' + currentMarketCode
         });
         const [tickerData] = response.data;
         setTicker(tickerData)
@@ -321,23 +395,26 @@ const DetailPage = (props) => {
       clearInterval(timer);
     };
 
-  }, [coin, refresh]);
+  }, [currentMarketCode, refresh]);
+
 
   // 코인 거래 요청 함수
   const reqTrade = async (event, tradeType) => {
     event.preventDefault();
+    setInputs({ buyAmount: '', sellAmount: '' });
 
-    if (!coolTime) throw new Error('연속으로 요청할 수 없습니다.');
-    makeCoolTime(1500);
-
-    let inputValue;
-    if (tradeType === 'buy') {
-      inputValue = Number(event.target.buyAmount.value);
-    } else if (tradeType === 'sell') {
-      inputValue = Number(event.target.sellAmount.value);
-    }
 
     try {
+      if (!coolTime) throw new Error('연속으로 요청할 수 없습니다.');
+      makeCoolTime(1500);
+  
+      let inputValue;
+      if (tradeType === 'buy') {
+        inputValue = Number(event.target.buyAmount.value);
+      } else if (tradeType === 'sell') {
+        inputValue = Number(event.target.sellAmount.value);
+      }
+      
       if (isNaN(inputValue)) throw new Error('숫자만 입력해주세요');
 
       const response = await axios.request({
@@ -345,7 +422,7 @@ const DetailPage = (props) => {
         url: '/user/coin/trade',
         data: {
           request: tradeType,
-          market: coin[0],
+          market: currentMarketCode,
           amount: inputValue,
         },
       });
@@ -355,7 +432,8 @@ const DetailPage = (props) => {
       if (error) throw new Error(error);
 
       if (result) {
-        setCoinPage([...coin]);
+        getUserCoinData();
+        // setCoinPage([currentMarketCode]);
       }
     } catch (err) {
       alert(err.message);
@@ -452,18 +530,18 @@ const DetailPage = (props) => {
           <form onSubmit={(e) => reqTrade(e, 'buy')}>
             <div className='desc-area'>
               <div className='text-area'>
-                <span>잔액</span>
+                <span>보유 수량</span>
               </div>
               <div className='input-area'>
-                <span>{userCoinData.balance ? userCoinData.balance.toLocaleString('ko-KR') : 0}</span>
+                <span>{userCoinData.amount}</span>
               </div>
             </div>
             <div className='desc-area'>
               <div className='text-area'>
-                최대 구매 가능 수량
+                <span>평단가</span>
               </div>
               <div className='input-area'>
-                <span>{userCoinData.maxBuy || 0}</span>
+                <span>{userCoinData.price}</span>
               </div>
             </div>
             <div className='desc-area'>
@@ -490,10 +568,20 @@ const DetailPage = (props) => {
           <form onSubmit={(e) => reqTrade(e, 'sell')}>
             <div className='desc-area'>
               <div className='text-area'>
-                <span>보유 수량</span>
+                <span>수익율</span>
               </div>
               <div className='input-area'>
-                <span>{userCoinData.coinAmount}</span>
+                <span className={
+                  ticker.trade_price === userCoinData.price || userCoinData.amount === 0 ?
+                    '' :
+                    (ticker.trade_price > userCoinData.price ? 'colorRed' : 'colorBlue')
+                }>
+                  {
+                    userCoinData.price ?
+                      parseInt((ticker.trade_price - userCoinData.price) / userCoinData.price * 10000) / 100 :
+                      0
+                  } %
+                </span>
               </div>
             </div>
             <div className='desc-area'>
@@ -504,23 +592,7 @@ const DetailPage = (props) => {
                 <span>{ticker.trade_price}</span>
               </div>
             </div>
-            <div className='desc-area'>
-              <div className='text-area'>
-                <span>평단가</span>
-              </div>
-              <div className='input-area'>
-                {
-                  ticker.trade_price === userCoinData.price || userCoinData.price === 0 ?
-                    <span>{userCoinData.price}</span> :
-                    (
-                      ticker.trade_price > userCoinData.price ?
-                        <span className='colorBlue'>{userCoinData.price}</span> :
-                        <span className='colorRed'>{userCoinData.price}</span>
-                    )
-                }
 
-              </div>
-            </div>
             <div className='desc-area'>
               <div className='text-area'>
                 <span>판매 수량</span>
@@ -541,14 +613,15 @@ const DetailPage = (props) => {
           </form>
         </div>
 
-      </div>
+      </div >
 
       {/* 모의 거래 히스토리 영역 */}
       <div className='history'>
+        <span>최근 거래 기록(5건)</span>
         <History />
-      </div>
+      </div >
 
-    </div>
+    </div >
   ) : (
     <Loading2 />
   );

@@ -1,5 +1,4 @@
 // eslint-disable-next-line
-
 import { useState, useRef, useEffect } from 'react';
 
 import './css/App.css';
@@ -7,224 +6,10 @@ import './css/animation.css';
 import { LogInForm, RegisterForm } from './component/LogInForm'
 import Nav from './component/Navbar'
 import { Loading2 } from './component/Loading'
-// import { Blog } from './component/BlogRouter'
 import { Board } from './component/BoardRouter'
 import { Coin } from './component/CoinRouter'
+import { Home } from './component/Test'
 import axios from 'axios';
-
-// 메인 소개 페이지
-const Home = () => {
-
-  const [profilePage, setProfilePage] = useState(0)
-
-  const Profile = (props) => {
-    const { page: introPage } = props;
-    if (introPage === 1) return <PageSkill />;
-    if (introPage === 2) return <PageProjectIntro />;
-    return <PageIntro />;
-  }
-
-
-  const PageIntro = () => {
-
-    const GitLogo = () => {
-      return <svg height="32" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="32" data-view-component="true">
-        <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
-      </svg>
-    }
-
-    return (
-      <div className='profile-intro'>
-        <div className='profile-title'>
-          <h2>Introduce</h2>
-        </div>
-
-        <div className='profile-intro-content'>
-
-          <div className='profile-intro-content-img'>
-            <img className='ani_fadeIn' src='/profile.jpg'></img>
-          </div>
-
-          <div className='profile-intro-content-text'>
-            <div className='about ani_fadeIn'>
-              <div className='title'>About</div>
-              <span>정재아</span>
-              <span>1992.05.22</span>
-              <span>한양대 에리카 캠퍼스 전자시스템공학부</span>
-            </div>
-            <div className='channel ani_fadeIn'>
-              <div className='title'>Github & Blog</div>
-              <a href='https://github.com/nyaongnyaooong' target='_blank'>
-                <GitLogo /><span>https://github.com/nyaongnyaooong</span>
-              </a>
-              <a href='https://blog.naver.com/ashah29' target='_blank'>
-                <img src='/blog.png' /><span>https://blog.naver.com/ashah29</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const PageSkill = () => {
-    return (
-      <div className='profile-skill ani_fadeIn'>
-        <div className='profile-title'>
-          <h2>Skills</h2>
-        </div>
-
-        <div className='profile-skill-content'>
-          <div className='group' align='center'>
-            <h3>Web & Front-end</h3>
-            <img src="https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white" />
-            <img src="https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white" />
-            <img src="https://img.shields.io/badge/Javascript-F7DF1E?style=flat-square&logo=javascript&logoColor=black" />
-            <img src="https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-            <br />
-            <img src="https://img.shields.io/badge/React.js-61DAFB?style=flat-square&logo=react&logoColor=black" />
-            <br />
-            <h3>Back-end</h3>
-            <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=Node.js&logoColor=white" />
-            <img src="https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white" />
-            <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white" />
-            <img src="https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=MongoDB&logoColor=white" />
-            <br />
-            <h3>Etc</h3>
-            <img src="https://img.shields.io/badge/Github-181717?style=flat-square&logo=github&logoColor=white" />
-            <br />
-            <img src="https://img.shields.io/badge/C++-00599C?style=flat-square&logo=c%2B%2B&logoColor=white" />
-            <img src="https://img.shields.io/badge/Python-3776AB?style==flat-square&logo=python&logoColor=white" />
-          </div>
-        </div>
-
-        {/* <div className='group' align='center'>
-          <h2>🌱 Planning or Hope to learn</h2>
-          <img src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=next.js&logoColor=white" />
-          <img src="https://img.shields.io/badge/NestJS-E0234E?style=flat-square&logo=nestjs&logoColor=white" />
-          <img src="https://img.shields.io/badge/Java-007396?style=flat-square&logo=OpenJDK&logoColor=white" />
-          <img src="https://img.shields.io/badge/Spring-6DB33F?style=flat-square&logo=spring&logoColor=white" />
-        </div> */}
-
-        {/* <!-- 안녕하세요
-          현재 NodeJS를 사용하여 Back-End 개발 공부 중 입니다
-  
-          https://github.com/nyaongnyaooong
-          https://career.programmers.co.kr/pr/luckyyou123_7068
-  
-          HTML CSS JavaScript NodeJS MongoDB MySQL --> */}
-
-        {/* <!-- <svg width="32" height="32" aria-hidden="true" viewBox="0 0 16 16" version="1.1" data-view-component="true" className="octicon octicon-mark-github v-align-middle">
-            <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path>
-          </svg> --> */}
-
-
-
-      </div>
-    )
-  }
-
-  const PageProjectIntro = () => {
-    return (
-      <div className='profile-project ani_fadeIn'>
-        <div className='profile-title'>
-          <h2>프로젝트</h2>
-        </div>
-        <div className='profile-content'>
-
-          <div className='project'>
-            <div className='title'>
-              <span>자유 게시판</span>
-            </div>
-
-            <div className='useSkill'>
-              <img src="https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-              <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=Node.js&logoColor=white" />
-              <img src="https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white" />
-              <img src="https://img.shields.io/badge/React.js-61DAFB?style=flat-square&logo=react&logoColor=black" />
-              <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white" />
-            </div>
-
-            <div className='detail'>
-              <span>
-                회원가입 & 로그인 후
-                <br />
-                게시글 및 댓글 작성 서비스
-              </span>
-            </div>
-          </div>
-
-          <div className='project'>
-            <div className='title'>
-              <span>코인 모의 매매</span>
-            </div>
-
-            <div className='useSkill'>
-              <img src="https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-              <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=Node.js&logoColor=white" />
-              <img src="https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white" />
-              <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white" />
-              <img src="https://img.shields.io/badge/React.js-61DAFB?style=flat-square&logo=react&logoColor=black" />
-            </div>
-
-            <div className='detail'>
-              <span>
-                실시간 코인 시세 확인 및 회원가입 &
-                <br />
-                로그인 후 모의 구매 및 판매 서비스
-              </span>
-            </div>
-          </div>
-
-          <div className='project'>
-            <div className='title'>
-              <span>코인 모의 매매</span>
-            </div>
-
-            <div className='useSkill'>
-              <img src="https://img.shields.io/badge/Typescript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-              <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=Node.js&logoColor=white" />
-              <img src="https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white" />
-              <img src="https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white" />
-              <img src="https://img.shields.io/badge/React.js-61DAFB?style=flat-square&logo=react&logoColor=black" />
-            </div>
-
-            <div className='detail'>
-              <span>
-                실시간 코인 시세 확인 및 회원가입 &
-                <br />
-                로그인 후 모의 구매 및 판매 서비스
-              </span>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="content_box content-profile ani_fadeIn">
-      <Profile page={profilePage} />
-
-      <div className="profile-navigate">
-        <div className='button-left'>
-          <button onClick={() => {
-            if (profilePage > 0) setProfilePage(profilePage - 1);
-          }}>◀</button>
-        </div>
-        <div className='text'>
-          <span>{profilePage + 1} / 20</span>
-        </div>
-        <div className='button-right'>
-          <button onClick={() => {
-            if (profilePage < 10) setProfilePage(profilePage + 1);
-          }}>▶</button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // 백그라운드 어둡게
 const BgDarker = (props) => {
@@ -271,66 +56,92 @@ const MyPage = (props) => {
     fetchData();
   }, [])
 
-
-
   // 유저정보 페이지
   const UserInfo = (props) => {
 
     const changePassword = async (current, change, check) => {
       try {
+        if (/google-\d+/.test(profileData.id)) throw new Error('구글 계정은 변경할 수 없습니다');
         if (change !== check) throw new Error('변경하려는 비밀번호와 재확인 비밀번호가 일치하지 않습니다');
 
         const response = await axios.request({
-          method: 'put',
-          url: '/user/password/change',
+          method: 'patch',
+          url: '/user/password',
           data: {
-            current: current,
-            change, change,
+            current,
+            change,
           }
         });
 
-        // response.data.error()
+        if (response.data.error) throw new Error(response.data.error);
+
+        if (response.data.result) {
+          alert('새로운 비밀번호로 다시 로그인 해주세요')
+          window.location.href = window.location.origin;
+        }
+
       } catch (error) {
         alert(error.message);
       }
+    }
 
+    const withdraw = async () => {
+
+      try {
+        const response = await axios.delete('/user');
+        console.log(response)
+        if (response.data.error) throw new Error(response.data.error);
+        if (response.data.result) {
+          alert('탈퇴되었습니다');
+          window.location.href = window.location.origin;
+        }
+      } catch (err) {
+        alert(err);
+      }
     }
 
 
     return profileData ? (
-      <div className='mypage-content'>
-        <div className='userinfo-title'>
+      <div className='page'>
+        <div className='title'>
           <h3>회원정보</h3>
         </div>
+        <div className='userinfo'>
+          <div className='userinfo-id'>
+            <h4>아이디</h4>
+            <span>{profileData.id}</span>
+          </div>
 
-        <div className='userinfo-id'>
-          <h4>아이디</h4>
-          {profileData.id}
-        </div>
+          <div className='userinfo-password'>
+            <h4>비밀번호</h4>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              changePassword(e.target.currentPW.value, e.target.changePW.value, e.target.checkPW.value);
+            }}>
+              <div>
+                <input name='currentPW' type='password' placeholder='현재 비밀번호'></input>
+              </div>
+              <div>
+                <input name='changePW' type='password' placeholder='변경할 비밀번호'></input>
+              </div>
+              <div>
+                <input name='checkPW' type='password' placeholder='변경할 비밀번호 재입력'></input>
+              </div>
 
-        <div className='userinfo-password'>
-          <h4>비밀번호</h4>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            changePassword(e.target.currentPW.value, e.target.changePW.value, e.target.checkPW.value);
-          }}>
-            <div>
-              <input name='currentPW' type='password' placeholder='현재 비밀번호'></input>
-            </div>
-            <div>
-              <input name='changePW' type='password' placeholder='변경할 비밀번호'></input>
-            </div>
-            <div>
-              <input name='checkPW' type='password' placeholder='변경할 비밀번호 재입력'></input>
-            </div>
+              <div className='button'>
+                <button>변경</button>
+              </div>
+            </form>
 
-            <div className='button'>
-              <button>변경</button>
-            </div>
-          </form>
-          <h4>탈퇴하기</h4>
-          <div className='button'>
-            <button>탈퇴하기</button>
+            <h4>탈퇴하기</h4>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              withdraw();
+            }}>
+              <div className='button'>
+                <button>탈퇴하기</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -341,35 +152,164 @@ const MyPage = (props) => {
 
   // 유저 코인 정보 페이지
   const CoinInfo = () => {
-    const chargeMoney = () => {
-      const fetchData = async () => {
-        const response = await axios.request({
-          method: 'post',
-          url: '/user/charge',
-        });
 
-        if (response.data.result) {
-          const newProfile = { ...profileData };
-          newProfile.money = newProfile.money + 1000000;
-          newProfile.charge = newProfile.charge + 1;
-          setProfileData(newProfile);
+    const [asset, setAsset] = useState([]);
+    const [ticker, setTicker] = useState([]);
+
+
+    useEffect(() => {
+      // 유저의 자산 정보를 가져오는 함수
+      const getAssetData = async () => {
+        try {
+          const response = await axios.request({
+            method: 'get',
+            url: '/user/coin/all',
+          });
+
+          if (response.data.error) throw new Error(response.data.error);
+          if (!response?.data?.result) throw new Error('데이터를 가져올 수 없습니다');
+
+          const { data } = response.data.result;
+          setAsset(data);
+        } catch (err) {
+          alert(err);
         }
       }
-      fetchData();
+
+      // 코인 현재가 정보를 가져오는 함수
+      const getTickerData = async () => {
+        try {
+          const response = await axios.request({
+            method: 'get',
+            url: '/coin/data',
+          });
+
+          // if (!response?.data) throw new Error('데이터를 가져올 수 없습니다1');
+          const { ticker: resTicker } = response.data;
+
+          setTicker(resTicker);
+
+        } catch (err) {
+          alert(err);
+        }
+      }
+
+      // 자산 정보는 한번, 현재가는 1.5초마다 갱신
+      getAssetData();
+      const timer = setInterval(() => {
+        getTickerData();
+      }, 1500)
+
+      return (() => {
+        clearInterval(timer);
+      });
+    }, []);
+
+    let totalBuyPrice = 0;
+    let totalCurrentPrice = 0;
+    let totalAsset = 0;
+    const assetHTML = []
+    // 자산 정보와 ticker 정보가 있을 경우에만 실행
+    if (asset.length > 0 && ticker.length > 0) {
+      asset.forEach((e, i) => {
+        const { market, price, amount } = e;
+
+        if (e.market === 'KRW') {
+          totalAsset += amount;
+
+          assetHTML.push(
+            <tr key={i}>
+              <td>원화</td>
+              <td>-</td>
+              <td>-</td>
+              <td>{amount}</td>
+              <td>-</td>
+            </tr>
+          )
+        }
+
+        // 자산 정보가 있으면
+        if (e.amount > 0) {
+          const index = ticker.findIndex(f => {
+            return f.market === market;
+          });
+
+          const nowPrice = ticker[index].trade_price
+          totalBuyPrice += price * amount;
+          totalCurrentPrice += nowPrice * amount;
+          totalAsset += nowPrice * amount;
+
+          assetHTML.push(
+            <tr key={i}>
+              <td>{market}</td>
+              <td>{amount}</td>
+              <td>{price}</td>
+              <td>{nowPrice}</td>
+              <td>{parseInt((nowPrice - price) / price * 10000) / 100}</td>
+            </tr>
+          )
+        }
+      })
     }
 
-    return (
-      <div className='mypage-content'>
-        <h4>모의코인 투자</h4>
-        <span>잔액</span>
-        {profileData.money}
-        <span>충전한 금액</span>
-        {profileData.charge}
-        <div>
-          <button onClick={chargeMoney}>100만원 충전하기</button>
+    return ticker.length ? (
+      asset ? (
+        <div className='page'>
+          <div className='title'>
+            <h3>모의코인 자산 정보</h3>
+          </div>
+          <div className='asset'>
+            <div className='total-asset'>
+              <div>
+
+              </div>
+              <div className='divTable'>
+                <div className='divTable-cell'>
+                  <div className='divTable-row divTable-th'>총 매수금액</div>
+                  <div className='divTable-row divTable-th'>총 평가금액</div>
+                </div>
+                <div className='divTable-cell'>
+                  <div className='divTable-row'>{totalBuyPrice} \</div>
+                  <div className='divTable-row'>{totalCurrentPrice} \</div>
+                </div>
+                <div className='divTable-cell'>
+                  <div className='divTable-row divTable-th'>총 평가손익</div>
+                  <div className='divTable-row divTable-th'>총 평가수익률</div>
+                </div>
+                <div className='divTable-cell'>
+                  <div className='divTable-row'>{totalAsset} \</div>
+                  <div className='divTable-row'>{
+                    isNaN(parseInt((totalCurrentPrice - totalBuyPrice) / totalBuyPrice * 10000) / 100) ?
+                      '-' :
+                      parseInt((totalCurrentPrice - totalBuyPrice) / totalBuyPrice * 10000) / 100
+                  } %
+                  </div>
+                </div>
+              </div>
+
+            </div>
+            <div className='table'>
+              <table>
+                <thead>
+                  <tr>
+                    <th>코인명</th>
+                    <th>보유수량</th>
+                    <th>매수가</th>
+                    <th>평단가</th>
+                    <th>손익(%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assetHTML}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
-    )
+      ) :
+        <div>자산이 없습니다</div>
+    ) :
+      <Loading2 />
   }
 
   // 좌측 페이지 네이게이션 컴포넌트
@@ -378,7 +318,7 @@ const MyPage = (props) => {
     const { setProfilePage } = stateFuncs;
 
     return (
-      <div className='mypage-pageList'>
+      <div className='navigate'>
         <ul>
           <a onClick={() => { setProfilePage(0); }}><li>회원정보</li></a>
           <a onClick={() => { setProfilePage(1); }}><li>코인정보</li></a>
@@ -396,13 +336,16 @@ const MyPage = (props) => {
     return <UserInfo />;
   }
 
-
   return (
     <div className='content_box ani_fadeIn'>
-      <h2>마이페이지</h2>
       <div className='mypage'>
-        <PageList navList={navList} stateFuncs={stateFuncs} />
-        <MyPageContent page={profilePage} stateFuncs={stateFuncs} />
+        <div className='title'>
+          <h2>마이페이지</h2>
+        </div>
+        <div className='content'>
+          <PageList navList={navList} stateFuncs={stateFuncs} />
+          <MyPageContent page={profilePage} stateFuncs={stateFuncs} />
+        </div>
       </div>
 
     </div>
@@ -411,7 +354,7 @@ const MyPage = (props) => {
 }
 
 const Content = (props) => {
-  const { page, serial, refreshPage, stateFunctions } = props;
+  const { page, serial, stateFunctions } = props;
 
   if (page === 1) return <Coin stateFunctions={stateFunctions} />
   if (page === 2) return <Board stateFunctions={stateFunctions} serial={serial} />

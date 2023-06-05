@@ -138,6 +138,7 @@ ul {
 /* 프로필 */
 
 .content-profile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -147,8 +148,10 @@ ul {
 
   .profile {
     &-title {
-      // display: flex;
-      // align-items: center;
+      // position: absolute;
+      // top: auto;
+      // top: 0;
+      left: 0px;
       width: 600px;
       text-align: center;
 
@@ -161,6 +164,9 @@ ul {
     }
 
     &-intro {
+      position: absolute;
+      top: auto;
+      left: auto;
       display: flex;
       flex: 10;
       flex-direction: column;
@@ -241,6 +247,9 @@ ul {
     }
 
     &-skill {
+      position: absolute;
+      top: auto;
+      left: auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -280,6 +289,9 @@ ul {
     }
 
     &-project {
+      position: absolute;
+      top: auto;
+      left: auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -334,8 +346,9 @@ ul {
   }
 
   .profile-navigate {
+    position: absolute;
+    bottom: 0;
     display: flex;
-    flex: 1;
 
     button {
       display: flex;
@@ -422,6 +435,7 @@ ul {
   margin-bottom: 10px;
 
   h2 {
+    text-shadow: 2px 2px black;
     font-size: 23px;
     border-bottom: 1px solid steelblue;
     padding: 20px;
@@ -620,7 +634,7 @@ ul {
 
 .hidden {
   visibility: hidden;
-  z-index: 1;
+  z-index: -1;
 }
 
 .visible {
@@ -644,47 +658,173 @@ ul {
 /* 마이페이지 */
 .mypage {
   width: 100%;
+  height: 100%;
   display: flex;
-  padding: 50px;
-  /* align-items: center; */
-  /* flex-direction: column; */
+  padding: 25px;
+  // align-items: center;
+  // justify-content: center;
+  flex-direction: column;
+
+  .title {
+    text-shadow: 2px 2px black;
+    border-bottom: 1px solid steelblue;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: row;
+
+    .navigate {
+      width: 200px;
+      box-shadow: 2px 2px 3px 0px black;
+      padding-top: 30px;
+      padding-bottom: 30px;
+
+      li {
+        text-align: center;
+        cursor: pointer;
+      }
+    }
+
+    .page {
+      width: 100%;
+      box-shadow: 2px 2px 3px 0px black;
+      padding-bottom: 30px;
+
+      .title {
+        text-shadow: 2px 2px black;
+        color: lightseagreen;
+        margin: 30px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid lightseagreen;
+      }
+    }
+  }
+
+  h4 {
+    margin-top: 30px;
+  }
+
+  button {
+    padding: 3px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background-color: steelblue;
+    border: 0px;
+  }
+
+  .border {
+    width: 100%;
+    // border: 1px solid black;
+    box-shadow: 2px 2px 3px 0px black;
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+
 }
 
+.userinfo {
+  width: 300px;
+  padding-left: 30px;
+  padding-right: 30px;
 
-.mypage h4 {
-  margin-top: 30px;
+  h4 {
+    text-shadow: 2px 2px black;
+    margin-bottom: 5px;
+    color: steelblue;
+  }
+
+  span {
+    font-size: 14px;
+  }
+
+  .userinfo-password input {
+    padding: 3px;
+    width: 100%;
+    margin-top: 5px
+  }
+
+  .userinfo-password .button {
+    /* padding: 3px; */
+    width: 100%;
+    text-align: right;
+  }
 }
 
-.mypage button {
-  padding: 3px;
-  padding-left: 10px;
-  padding-right: 10px;
-  margin-top: 5px;
-  margin-bottom: 5px;
-  background-color: steelblue;
-  border: 0px;
-}
+.asset {
+  padding-left: 30px;
+  padding-right: 30px;
 
+  .total-asset {
+    .divTable {
+      // text-shadow: 1px 1px white;
+      display: table;
+      width: 100%;
+      font-size: 14px;
+      text-align: right;
 
+      &-cell {
+        width: 100px;
+        display: table-cell;
+        text-align: right;
+      }
 
-.mypage-pageList {
-  width: 250px;
-}
+      &-row {
+        width: 100px;
+        display: table-row;
+      }
 
-.mypage-content {
-  width: 100%;
-}
+      &-th {
+        color: steelblue;
+        width: 100px;
+        text-align: left;
+      }
+    }
+  }
 
-.userinfo-password input {
-  padding: 3px;
-  width: 50%;
-  margin-top: 5px
-}
+  .table {
+    margin-top: 20px;
 
-.userinfo-password .button {
-  /* padding: 3px; */
-  width: 50%;
-  text-align: right;
+    table {
+      /* 내부 값이 줄바꿈을 하지 않음 */
+      white-space: nowrap;
+      color: white;
+      letter-spacing: 1px;
+      width: 100%;
+
+      thead {
+        font-size: 14px;
+        color: steelblue;
+        /* 글자 사이 간격 */
+        letter-spacing: 1px;
+
+        .width40 {
+          width: 40px;
+        }
+
+        th {
+          padding: 5px;
+        }
+      }
+
+      tbody {
+        font-size: 12px;
+        /* 글자 사이 간격 */
+        letter-spacing: 1px;
+        text-align: center;
+
+        tr {
+          &:hover {
+            color: steelblue;
+          }
+        }
+      }
+    }
+  }
 }
 
 
@@ -810,15 +950,15 @@ ul {
   justify-content: center;
   /* 세로정렬 */
   /* align-items: center; */
-}
 
-.trade button {
-  margin-top: 5px;
-  width: 70px;
-  height: 30px;
-  color: antiquewhite;
-  border-radius: 3px;
-  border: 0px;
+  button {
+    margin-top: 5px;
+    width: 70px;
+    height: 30px;
+    color: antiquewhite;
+    border-radius: 3px;
+    border: 0px;
+  }
 }
 
 .bgColorRed {
@@ -828,8 +968,6 @@ ul {
 .bgColorBlue {
   background-color: royalblue;
 }
-
-
 
 .colorRed {
   color: crimson;
@@ -843,33 +981,66 @@ ul {
   color: white;
 }
 
+.colorSteelBlue {
+  color: steelblue;
+}
+
 .trade-type {
   flex: 20;
   height: 100%;
   display: flex;
   flex-direction: column;
+
+  .desc-area {
+    display: flex;
+    flex-direction: row;
+
+    .text-area {
+      min-height: 22.4px;
+      flex: 3;
+      font-size: 12px;
+    }
+
+    .input-area {
+      flex: 2;
+      text-align: right;
+
+      input {
+        z-index: 10;
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
 }
 
-.trade-type .desc-area {
-  display: flex;
-  flex-direction: row;
-}
+.history {
+  table {
+    white-space: nowrap;
+    color: white;
+    letter-spacing: 1px;
+    width: 100%;
+    text-align: center;
 
-.trade-type .desc-area .text-area {
-  min-height: 22.4px;
-  flex: 3;
-  font-size: 12px;
-}
+    thead {
+      font-size: 14px;
+      // color: lightseagreen;
+      color: steelblue;
+      letter-spacing: 1px;
 
-.trade-type .desc-area .input-area {
-  flex: 2;
-  text-align: right;
-}
+      .width40 {
+        width: 40px;
+      }
 
-.trade-type .desc-area .input-area input {
-  z-index: 10;
-  width: 100%;
-  height: 100%;
+      th {
+        padding: 5px;
+      }
+    }
+
+    tbody {
+      font-size: 12px;
+    }
+  }
 }
 
 .spare {

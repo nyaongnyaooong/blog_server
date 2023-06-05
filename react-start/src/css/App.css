@@ -122,6 +122,7 @@ ul {
 
 /* 프로필 */
 .content-profile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -130,6 +131,7 @@ ul {
   border-radius: 10px;
 }
 .content-profile .profile-title {
+  left: 0px;
   width: 600px;
   text-align: center;
 }
@@ -140,6 +142,9 @@ ul {
   padding-left: 10px;
 }
 .content-profile .profile-intro {
+  position: absolute;
+  top: auto;
+  left: auto;
   display: flex;
   flex: 10;
   flex-direction: column;
@@ -204,6 +209,9 @@ ul {
   font-size: 18px;
 }
 .content-profile .profile-skill {
+  position: absolute;
+  top: auto;
+  left: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -235,6 +243,9 @@ ul {
   margin: 2px;
 }
 .content-profile .profile-project {
+  position: absolute;
+  top: auto;
+  left: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -277,8 +288,9 @@ ul {
   font-size: 13px;
 }
 .content-profile .profile-navigate {
+  position: absolute;
+  bottom: 0;
   display: flex;
-  flex: 1;
 }
 .content-profile .profile-navigate button {
   display: flex;
@@ -340,6 +352,7 @@ ul {
   margin-bottom: 10px;
 }
 .content-title h2 {
+  text-shadow: 2px 2px black;
   font-size: 23px;
   border-bottom: 1px solid steelblue;
   padding: 20px;
@@ -525,7 +538,7 @@ ul {
 } */
 .hidden {
   visibility: hidden;
-  z-index: 1;
+  z-index: -1;
 }
 
 .visible {
@@ -536,16 +549,46 @@ ul {
 /* 마이페이지 */
 .mypage {
   width: 100%;
+  height: 100%;
   display: flex;
-  padding: 50px;
-  /* align-items: center; */
-  /* flex-direction: column; */
+  padding: 25px;
+  flex-direction: column;
 }
-
+.mypage .title {
+  text-shadow: 2px 2px black;
+  border-bottom: 1px solid steelblue;
+  padding-bottom: 10px;
+  margin-bottom: 30px;
+}
+.mypage .content {
+  display: flex;
+  flex-direction: row;
+}
+.mypage .content .navigate {
+  width: 200px;
+  box-shadow: 2px 2px 3px 0px black;
+  padding-top: 30px;
+  padding-bottom: 30px;
+}
+.mypage .content .navigate li {
+  text-align: center;
+  cursor: pointer;
+}
+.mypage .content .page {
+  width: 100%;
+  box-shadow: 2px 2px 3px 0px black;
+  padding-bottom: 30px;
+}
+.mypage .content .page .title {
+  text-shadow: 2px 2px black;
+  color: lightseagreen;
+  margin: 30px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid lightseagreen;
+}
 .mypage h4 {
   margin-top: 30px;
 }
-
 .mypage button {
   padding: 3px;
   padding-left: 10px;
@@ -555,25 +598,91 @@ ul {
   background-color: steelblue;
   border: 0px;
 }
-
-.mypage-pageList {
-  width: 250px;
-}
-
-.mypage-content {
+.mypage .border {
   width: 100%;
+  box-shadow: 2px 2px 3px 0px black;
+  padding-top: 30px;
+  padding-bottom: 30px;
 }
 
-.userinfo-password input {
+.userinfo {
+  width: 300px;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+.userinfo h4 {
+  text-shadow: 2px 2px black;
+  margin-bottom: 5px;
+  color: steelblue;
+}
+.userinfo span {
+  font-size: 14px;
+}
+.userinfo .userinfo-password input {
   padding: 3px;
-  width: 50%;
+  width: 100%;
   margin-top: 5px;
 }
-
-.userinfo-password .button {
+.userinfo .userinfo-password .button {
   /* padding: 3px; */
-  width: 50%;
+  width: 100%;
   text-align: right;
+}
+
+.asset {
+  padding-left: 30px;
+  padding-right: 30px;
+}
+.asset .total-asset .divTable {
+  display: table;
+  width: 100%;
+  font-size: 14px;
+  text-align: right;
+}
+.asset .total-asset .divTable-cell {
+  width: 100px;
+  display: table-cell;
+  text-align: right;
+}
+.asset .total-asset .divTable-row {
+  width: 100px;
+  display: table-row;
+}
+.asset .total-asset .divTable-th {
+  color: steelblue;
+  width: 100px;
+  text-align: left;
+}
+.asset .table {
+  margin-top: 20px;
+}
+.asset .table table {
+  /* 내부 값이 줄바꿈을 하지 않음 */
+  white-space: nowrap;
+  color: white;
+  letter-spacing: 1px;
+  width: 100%;
+}
+.asset .table table thead {
+  font-size: 14px;
+  color: steelblue;
+  /* 글자 사이 간격 */
+  letter-spacing: 1px;
+}
+.asset .table table thead .width40 {
+  width: 40px;
+}
+.asset .table table thead th {
+  padding: 5px;
+}
+.asset .table table tbody {
+  font-size: 12px;
+  /* 글자 사이 간격 */
+  letter-spacing: 1px;
+  text-align: center;
+}
+.asset .table table tbody tr:hover {
+  color: steelblue;
 }
 
 /* 코인 css */
@@ -679,7 +788,6 @@ ul {
   /* 세로정렬 */
   /* align-items: center; */
 }
-
 .trade button {
   margin-top: 5px;
   width: 70px;
@@ -709,33 +817,55 @@ ul {
   color: white;
 }
 
+.colorSteelBlue {
+  color: steelblue;
+}
+
 .trade-type {
   flex: 20;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
-
 .trade-type .desc-area {
   display: flex;
   flex-direction: row;
 }
-
 .trade-type .desc-area .text-area {
   min-height: 22.4px;
   flex: 3;
   font-size: 12px;
 }
-
 .trade-type .desc-area .input-area {
   flex: 2;
   text-align: right;
 }
-
 .trade-type .desc-area .input-area input {
   z-index: 10;
   width: 100%;
   height: 100%;
+}
+
+.history table {
+  white-space: nowrap;
+  color: white;
+  letter-spacing: 1px;
+  width: 100%;
+  text-align: center;
+}
+.history table thead {
+  font-size: 14px;
+  color: steelblue;
+  letter-spacing: 1px;
+}
+.history table thead .width40 {
+  width: 40px;
+}
+.history table thead th {
+  padding: 5px;
+}
+.history table tbody {
+  font-size: 12px;
 }
 
 .spare {

@@ -198,35 +198,67 @@ const BoardPostRead = (props) => {
   };
 
   // 댓글 삭제 요청 함수
-  const delComment = async (comment_serial) => {
+  const delComment = async (reqSerial) => {
     try {
+      // 서버에 삭제 요청
       const response = await axios.request({
         method: 'delete',
-        url: '/comment/' + comment_serial,
+        url: '/comment/' + reqSerial,
         data: {
           boardSerial: serial
         }
       });
 
-      if (response.data.result) {
-        const { commentState } = response.data.result;
+      // 요청에 문제
+      const { result, error } = response.data;
+      if (!result) throw new Error('요청에 실패했습니다');
+      if (error) throw new Error(error);
 
-        const newCommentData = [...commentData];
-        const index = newCommentData.findIndex((e) => {
-          return e.comment_serial === comment_serial;
+      // 해당 댓글을 삭제처리할지 '삭제된 댓글입니다'로 표기할지 결정
+      const { commentState } = response.data.result;
+
+      // 댓글 리스트 배열 복사
+      const newCommentData = [...commentData];
+      // 댓글 리스트 배열 값 중 삭제 요청한 인덱스 찾기
+      const index = newCommentData.findIndex((e) => {
+        return e.comment_serial === reqSerial;
+      })
+
+      if (commentState === 'delete') {  // 삭제요청한 댓글이 대댓글인 경우
+        // 형제 대댓글이 있는지 확인
+        let isBrother = false;
+        newCommentData.forEach(e => {
+          if (e.reply === newCommentData[index].reply && e.comment_serial !== reqSerial) {
+            isBrother = true;
+            return
+          }
         })
 
-        if (commentState === 'delete') newCommentData.splice(index, 1);
-        else if (commentState === 'erase') newCommentData[index].erase = 1;
-        else throw new Error('알 수 없는 에러입니다');
+        // 형제 대댓글이 없으면
+        if (!isBrother) {
+          // 부모 댓글 인덱스 검색
+          const parentIndex = newCommentData.findIndex((e) => {
+            return e.comment_serial === newCommentData[index].reply;
+          })
 
-        const newState = new Array(newCommentData.length).fill({ type: 'reply', active: false })
-        setReplyActive(newState);
-        setCommentData(newCommentData);
+          // 부모 댓글이 '삭제된 댓글입니다' 일 경우 삭제
+          if(newCommentData[parentIndex].erase) newCommentData.splice(parentIndex, 1);
+        }
 
+        // 본인 삭제
+        newCommentData.splice(index, 1);
+      } else if (commentState === 'erase') {  // 삭제요청한 댓글이 대댓글이 아닌 경우
+        // '삭제된 댓글입니다' 표시
+        newCommentData[index].erase = 1;
       }
-    } catch (error) {
-      alert(error)
+      else throw new Error('알 수 없는 에러입니다');
+
+      const newState = new Array(newCommentData.length).fill({ type: 'reply', active: false })
+      setReplyActive(newState);
+      setCommentData(newCommentData);
+
+    } catch (err) {
+      alert(err)
     }
 
   };
@@ -316,8 +348,7 @@ const BoardPostRead = (props) => {
             <form onSubmit={(e) => {
               e.preventDefault();
               addComment(e.target.comment_content.value, replySerial);
-              // const newState = new Array(replyActive.length).fill({ type: 'patch', active: false });
-              // setReplyActive(newState);
+              e.target.comment_content.value = '';
             }}>
               <div className='comment-reply-text'><textarea name='comment_content' /></div>
               <div className='comment-button'><button type='submit'>등록</button></div>
@@ -524,7 +555,7 @@ const BoardPostRead = (props) => {
         <div className='post-head'>
           <div className='post-title'>
             <div className='text'><h3>{boardData.title}</h3></div>
-            <div className='button'><button onClick={() => {setBoardPage('home')}}>메인으로</button></div>
+            <div className='button'><button onClick={() => { setBoardPage('home') }}>메인으로</button></div>
           </div>
 
           <div className='post-id'>
@@ -569,6 +600,7 @@ const BoardPostRead = (props) => {
           <form onSubmit={(e) => {
             e.preventDefault();
             addComment(e.target.comment_content.value);
+            e.target.comment_content.value = '';
           }}>
             <div className='comment-write'>
               <textarea name='comment_content'>
@@ -632,7 +664,7 @@ const BoardHome = (props) => {
 
         <td className="board_title">
           <span>{title}</span>
-          <span className="board_comment"> ({commentNumber})</span>
+          <span className="board_comment">{commentNumber ? ' ' + commentNumber : ''}</span>
         </td>
         <td className="board_author">
           <span>{id}</span>
@@ -724,7 +756,7 @@ const Board = (props) => {
     setPostData,
   }
   if (boardPage === 'home') return <BoardHome stateFuncs={stateFuncs} />
-  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} stateFunctions={stateFunctions}/>
+  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} stateFunctions={stateFunctions} />
   if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} stateFunctions={stateFunctions} />
   if (boardPage === 'update') return <BoardPostUpdate postData={postData} serial={postNumber} stateFuncs={stateFuncs} />
   return <Loading2 />

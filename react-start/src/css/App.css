@@ -647,6 +647,7 @@ ul {
 .asset .total-asset .divTable-row {
   width: 100px;
   display: table-row;
+  text-align: right;
 }
 .asset .total-asset .divTable-th {
   color: steelblue;

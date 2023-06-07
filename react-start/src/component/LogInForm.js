@@ -207,24 +207,31 @@ const RegisterForm = (props) => {
 
   const reqRegister = async (e) => {
     e.preventDefault();
-    const regID = e.target.regID.value;
-    const regPW = e.target.regPW.value;
+    const regId = e.target.regId.value;
+    const regPw = e.target.regPw.value;
+    const regPwAgain = e.target.regPwAgain.value;
 
-    if (!loginActive) return
-
+    if (!loginActive) return 0;
     setLoginActive(false);
+
     setTimeout(() => {
       setLoginActive(true);
     }, 1600)
 
     const reqObject = {
-      regID,
-      regPW
+      regId,
+      regPw
     }
     try {
-      if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(regID)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
-      if (!regID) throw new Error('아이디를 입력해주세요');
-      if (!regPW) throw new Error('패스워드를 입력해주세요');
+      if (!/^[0-9 | a-z]+$/g.test(regId)) throw new Error('영문자 혹은 숫자의 조합만 아이디로 사용할 수 있습니다');
+      // if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(regId)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
+      if (regId.includes('admin') || regId.includes('google') || regId.includes('anonymous')) throw new Error('아이디로 사용할 수 없는 문자가 섞여있습니다');
+      if (regId.length > 13) throw new Error('아이디는 12글자 이하만 사용할 수 있습니다');
+      if (regId.length < 4) throw new Error('아이디는 4글자 이상만 사용할 수 있습니다');
+      if (regPw.length < 8) throw new Error('패스워드는 8자 이상 입력해주세요');
+      if (regPw !== regPwAgain) throw new Error('패스워드 확인문자가 다릅니다');
+      if (!regId) throw new Error('아이디를 입력해주세요');
+      if (!regPw) throw new Error('패스워드를 입력해주세요');
 
       const response = await axios.post('/register/post', reqObject);
 
@@ -257,13 +264,20 @@ const RegisterForm = (props) => {
 
         <FormGroup>
           <InputGroup>
-            <input type="text" aria-describedby="emailHelp" placeholder="아이디" name="regID"></input>
+            <input type="text" aria-describedby="emailHelp" placeholder="아이디" name="regId"></input>
+          </InputGroup>
+        </FormGroup>
+
+
+        <FormGroup>
+          <InputGroup>
+            <input type="password" placeholder="비밀번호" name="regPw"></input>
           </InputGroup>
         </FormGroup>
 
         <FormGroup>
           <InputGroup>
-            <input type="password" placeholder="비밀번호" name="regPW"></input>
+            <input type="password" placeholder="비밀번호 확인" name="regPwAgain"></input>
           </InputGroup>
         </FormGroup>
 
@@ -274,7 +288,7 @@ const RegisterForm = (props) => {
         </FormGroup>
 
         <FormGroup>
-          <DivLineGroup>
+          {/* <DivLineGroup>
             <div className="divine_line_box">
               <div className="divine_line"></div>
             </div>
@@ -288,11 +302,7 @@ const RegisterForm = (props) => {
             <div className="divine_line_box">
               <div className="divine_line"></div>
             </div>
-          </DivLineGroup>
-        </FormGroup>
-
-        <FormGroup>
-          <span className="login_form_title">OAuth2 예정</span>
+          </DivLineGroup> */}
         </FormGroup>
 
         <FormGroup />

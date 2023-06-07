@@ -34,6 +34,10 @@
   padding-top: 5px;
   padding-bottom: 5px;
 }
+.board_table .board_title .board_comment {
+  color: red;
+  font-size: 10px;
+}
 .board_table .board_view {
   text-align: center;
 }

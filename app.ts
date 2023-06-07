@@ -9,14 +9,13 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import fs from 'fs';
 
-import { mySQLPool } from './modules/database';
 import { createToken, createSignature } from './modules/jwt';
 
 /*
   Types
 */
 import { Market, Ticker, Payload } from './index.d';
-import { UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable, TradeSQLTable } from './modules/database';
+import { mySQLPool, UserSQLTable, BoardSQLTable, CommentSQLTable, CoinSQLTable, TradeSQLTable } from './modules/database';
 import { ResultSetHeader } from 'mysql2';
 
 // Express
@@ -83,52 +82,14 @@ const alertMessage: (errorCode: string) => string = (errorCode) => {
   return '알 수 없는 오류입니다';
 }
 
-/*
-  Variables
-*/
-
-// KRW 전체 마켓 정보
-const gMarket: Market[] = [];
-// 전체 마켓에 대한 Ticker
-let gTicker: Ticker[] = [];
-
-// 코인 ticker 데이터 request 함수
-const getTicker: () => void = async () => {
-  try {
-    // 마켓 정보를 불러옴
-    const res1 = await axios.request<Market[]>({
-      method: 'get',
-      url: "https://api.upbit.com/v1/market/all?isDetails=false",
-      headers: {
-        accept: "application/json"
-      }
-    });
-
-    // 전체 마켓 이름을 string
-    let krwMrkStr: string = '';
-    res1.data.forEach(elm => {
-      if (elm.market.includes('KRW')) {
-        gMarket.push(elm)
-        krwMrkStr += krwMrkStr ? ', ' + elm.market : elm.market;
-      }
-    });
-
-    setInterval(async () => {
-      const res2 = await axios.request({
-        method: 'get',
-        url: "https://api.upbit.com/v1/ticker?markets=" + krwMrkStr,
-        headers: {
-          accept: "application/json"
-        }
-      });
-      gTicker = res2.data;
-    }, 1000);
-
-  } catch (error) {
-    console.log(error)
+class CustomError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CustomError';
   }
 }
-getTicker();
+
+
 
 
 /*
@@ -160,13 +121,13 @@ app.use((req, res, next) => {
   try {
     const payload = jwtExam(accessToken);
     // 위변조된 토큰
-    if (!payload) throw new Error('01');
+    if (!payload) throw new CustomError('01');
 
     const payloadSerial = 'serial' in payload ? payload.serial : '';
     const payloadUserID = 'userid' in payload ? payload.userid : '';
 
     // 페이로드 정보를 읽어오는데 실패
-    if (!payloadSerial || !payloadUserID) throw new Error('02');
+    if (!payloadSerial || !payloadUserID) throw new CustomError('02');
 
     req.user = {
       serial: payloadSerial,
@@ -175,7 +136,7 @@ app.use((req, res, next) => {
     next();
   } catch (error) {
 
-    if (error instanceof Error) {
+    if (error instanceof CustomError) {
       if (error.message === '01') console.log('위변조된 토큰');
       if (error.message === '02') console.log('페이로드 정보를 읽어오는데 실패');
     } else {
@@ -193,999 +154,30 @@ app.use((req, res, next) => {
 /*
   Routers
 */
-// 유저 데이터 관련 라우터
+// 사용자 정보 관련 라우터
 app.use('/', require(path.join(__dirname, './routes/acount')));
 
-// // 메인 blog 관련 라우터
-// app.use('/', require(path.join(__dirname, './routes/blog')));
+// 코인 모의투자 라우터
+app.use('/', require(path.join(__dirname, './routes/coin')));
 
-// // 코인 모의투자 라우터
-// app.use('/', require(path.join(__dirname, './routes/coin')));
+// 자유게시판 관련 라우터
+app.use('/', require(path.join(__dirname, './routes/board')));
+
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 })
 
-// 코인 마켓 데이터 및 티커 데이터 api
-app.get('/coin/data', async (req, res) => {
-  const resData = {
-    market: gMarket,
-    ticker: gTicker
-  }
-  res.send(resData);
-});
 
-// app.get('/logout', (req, res) => {
-//   console.log(123)
-//   res.cookie('accessToken', '', {
-//     path: '/',
-//     httpOnly: true,
-//     maxAge: 0
-//   });
 
-//   res.send(true)
-// })
 
 app.get('/domain', (req, res) => {
   res.send(process.env.DOMAIN);
 })
 
-// 유저 코인 정보 - 모든 마켓
-app.get('/user/coin/all', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
 
-  try {
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
 
-    await mySQL.beginTransaction();
 
-    // 요청한 마켓의 유저 코인정보
-    const [resSQL1] = await mySQL.query<CoinSQLTable[]>(
-      `SELECT *
-      FROM coin
-      WHERE user_serial=${userSerial}`
-    );
-
-    res.send({
-      result: {
-        ticker: gMarket,
-        data: resSQL1
-      },
-      error: false,
-    });
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    })
-
-  } finally {
-    mySQL.release();
-  }
-
-});
-
-// 게시판 게시글 리스트 api
-app.get("/board/data", async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    await mySQL.beginTransaction();
-
-    const [resSQL] = await mySQL.query<BoardSQLTable[]>(`SELECT *
-      FROM board
-      ORDER BY board_serial DESC
-    `);
-
-    const [resSQL2] = await mySQL.query<BoardSQLTable[]>(`SELECT board_serial, COUNT(*) AS comments
-      FROM comment 
-      GROUP BY board_serial;
-    `);
-
-    res.send({
-      result: {
-        sqlData: {
-          boardList: resSQL,
-          commentsList: resSQL2
-        },
-        userData: req.user,
-      },
-      error: false,
-    });
-  } catch (error) {
-    await mySQL.rollback();
-    console.error('게시글 List에서 에러발생');
-    console.error(error);
-  } finally {
-    mySQL.release();
-  }
-});
-
-// 게시글 생성 라우터
-app.post("/board/post", async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    const { title: reqPostTitle, content: reqPostContent } = req.body;
-    // body 데이터가 정상적으로 들어오지 않거나 값이 없음
-    if (typeof reqPostTitle !== 'string' || reqPostTitle === '') throw new Error('01');
-    if (typeof reqPostContent !== 'string' || reqPostContent === '') throw new Error('01');
-
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    await mySQL.beginTransaction();
-
-    const [result] = await mySQL.query(`INSERT INTO board(user_serial, user_id, title, content, date)
-    VALUES(${userSerial}, '${userID}', '${reqPostTitle}', '${reqPostContent}', NOW())`);
-
-    await mySQL.commit();
-
-    // DB 추가에 실패함
-    if (!('affectedRows' in result) || !result.affectedRows) throw new Error('06');
-
-    res.send({
-      result: true,
-      error: false
-    });
-
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-
-});
-
-// 게시글 수정 라우터
-app.put("/board/put/:serial", async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  const { serial: reqPostSerial } = req.params;
-
-  try {
-    const { title: putTitle, content: putContent } = req.body;
-    // body 데이터가 정상적으로 들어오지 않음
-    if (typeof putTitle !== 'string' || typeof putContent !== 'string') throw new Error('01');
-
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    await mySQL.beginTransaction();
-
-    // 게시글 작성자와 로그인한 유저가 동일한지 확인
-    const [resSQL1] = await mySQL.query<BoardSQLTable[]>(`SELECT user_serial
-    FROM board
-    WHERE board_serial=${reqPostSerial}`);
-
-    // 존재하지 않는 게시물
-    if (!resSQL1[0]) throw new Error('04');
-
-    const { user_serial } = resSQL1[0];
-    // 게시물 작성자와 게시물 수정 요청자가 일치하지 않음
-    if (userSerial !== user_serial) throw new Error('05');
-
-    // 게시물 수정
-    const [resSQL2] = await mySQL.query(`UPDATE board
-    SET title='${putTitle}', content='${putContent}'
-    WHERE board_serial='${reqPostSerial}'`);
-
-    await mySQL.commit();
-
-    if ('affectedRows' in resSQL2 && resSQL2.affectedRows) {
-      res.send({
-        result: true,
-        error: false
-      });
-    }
-    else {
-      throw new Error('06');
-    }
-
-  } catch (err) {
-    await mySQL.rollback();
-    let errMessage = '알 수 없는 오류입니다';
-
-    if (err instanceof Error) {
-      errMessage = alertMessage(err.message);
-    } else {
-      errMessage = String(err);
-    }
-
-    res.send({
-      result: false,
-      error: errMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-
-});
-
-// 게시글 상세 페이지
-app.get('/board/:serial', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  const { serial: reqPostSerial } = req.params;
-
-  try {
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-
-    await mySQL.beginTransaction();
-
-    const [resSQL1] = await mySQL.query<BoardSQLTable[]>(`SELECT *
-    FROM board 
-    WHERE board_serial=${reqPostSerial}`);
-
-    const [resSQL2] = await mySQL.query<CommentSQLTable[]>(`SELECT * 
-    FROM comment 
-    WHERE board_serial=${reqPostSerial}`);
-
-    // 게시물이 존재하지 않음
-    if (!resSQL1[0]) throw new Error('04');
-
-    res.send({
-      result: {
-        boardData: resSQL1[0],
-        commentData: resSQL2,
-        userData: req.user,
-      },
-      error: false,
-    });
-  } catch (error) {
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-});
-
-
-
-// board delete
-app.delete('/board/:serial', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  const { serial: reqPostSerial } = req.params;
-
-  try {
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    await mySQL.beginTransaction();
-
-    const [resSQL1] = await mySQL.query<BoardSQLTable[]>(`SELECT *
-    FROM board
-    WHERE board_serial=${reqPostSerial}`);
-
-    // 게시물이 존재하지 않음
-    if (!resSQL1[0]) throw new Error('04');
-    const { user_serial } = resSQL1[0];
-
-    // 게시물 작성자와 로그인한 유저가 불일치
-    if (userSerial !== user_serial && userID !== 'admin') throw new Error('05');
-
-    const [resSQL2] = await mySQL.query(`DELETE FROM comment
-    WHERE board_serial='${reqPostSerial}';`);
-
-    const [resSQL3] = await mySQL.query(`DELETE FROM board
-    WHERE board_serial='${reqPostSerial}';`);
-
-    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
-    if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
-
-    await mySQL.commit();
-
-    res.send({
-      result: true,
-      error: false
-    });
-
-  } catch (error) {
-    await mySQL.rollback();
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-});
-
-// 댓글 추가 api
-app.post('/comment', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    const { content: reqContent } = req.body;
-    const reqSerial = Number(req.body.serial);
-    const reqCommentType = Number(req.body.reply);
-
-    // body 데이터의 타입이 다르거나 댓글 내용이 없음
-    if (isNaN(reqSerial)) throw new Error('01');
-    if (typeof reqContent !== 'string' || reqContent === '') throw new Error('01');
-    if (isNaN(reqCommentType)) throw new Error('01');
-
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    await mySQL.beginTransaction();
-
-    const [resSQL] = await mySQL.query<ResultSetHeader>(
-      `INSERT INTO comment(user_serial, user_id, board_serial, content, date, reply)
-      VALUES(${req.user.serial}, '${req.user.id}', ${reqSerial}, '${reqContent}', NOW(), ${reqCommentType})`
-    );
-
-    await mySQL.commit();
-
-    // DB 업데이트 실패
-    // if (resSQL instanceof ResultSetHeader)
-    if (!('affectedRows' in resSQL) || !resSQL.affectedRows) throw new Error('06');
-
-    res.send({
-      result: {
-        sqlData: {
-          insertId: resSQL.insertId
-        },
-        userData: req.user
-      },
-      error: false
-    });
-
-  } catch (error) {
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-
-  } finally {
-    mySQL.release();
-  }
-});
-
-// 댓글 수정 api
-app.patch('/comment', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    const { reqContent } = req.body;
-    const reqSerial = Number(req.body.reqSerial);
-    // body 데이터가 정상적으로 들어오지 않음
-    if (isNaN(reqSerial) || typeof reqContent !== 'string' || reqContent === '') throw new Error('01');
-
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    await mySQL.beginTransaction();
-
-    const [resSQL1] = await mySQL.query<CommentSQLTable[]>(
-      `SELECT *
-      From comment
-      WHERE comment_serial=${reqSerial}`
-    )
-
-    // 댓글이 존재하지 않음
-    if (!resSQL1[0]) throw new Error('04');
-    const { user_serial } = resSQL1[0];
-
-    // 댓글 작성자와 로그인한 유저가 불일치
-    if (userSerial !== user_serial && userID !== 'admin') throw new Error('05');
-
-    const [resSQL2] = await mySQL.query(
-      `UPDATE comment
-      SET content='${reqContent}'
-      WHERE comment_serial=${reqSerial}`
-    )
-
-    await mySQL.commit();
-
-    // DB 업데이트 실패
-    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
-
-    res.send({
-      result: {
-        sqlData: true,
-        userData: req.user
-      },
-      error: false
-    });
-
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-})
-
-// 구글 로그인 페이지로 리다이렉션 라우터
-app.get('/login/google', (req, res) => {
-  const { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } = process.env;
-
-  const GOOGLE_OAUTH_URI: string = 'https://accounts.google.com/o/oauth2/v2/auth';
-  const queryClientID = '?client_id=' + GOOGLE_CLIENT_ID;
-  const queryRedirectURI = '&redirect_uri=' + GOOGLE_REDIRECT_URI;
-  const queryResponseType: string = '&response_type=code';
-  const queryScope: string = '&scope=email profile';
-
-  res.redirect(GOOGLE_OAUTH_URI + queryClientID + queryRedirectURI + queryResponseType + queryScope);
-})
-
-// 사용자 정보 요청 api
-// 쿼리스트링으로 구글코드를 받아 google api에 토큰을 요청 후 응답받은 토큰으로 사용자 정보 재요청
-app.get('/google/redirect', async (req, res) => {
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = process.env;
-
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    const { code } = req.query;
-    // 구글코드 발급이 정상적으로 되지 않았을 경우
-    if (typeof code !== 'string') throw new Error('07');
-
-    const GOOGLE_TOKEN_URL: string = 'https://oauth2.googleapis.com/token';
-    // 토큰 요청
-    const res1 = await axios.post(GOOGLE_TOKEN_URL, {
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-      code: code,
-      redirect_uri: GOOGLE_REDIRECT_URI,
-      grant_type: 'authorization_code',
-    });
-
-    const token = res1.data.access_token;
-    // 토큰 발급이 정상적으로 되지 않았을 경우
-    if (typeof token !== 'string') throw new Error('08');
-
-    // 사용자 정보 요청
-    // Bearer에 대한 정보는 아래 URL에서 확인
-    // https://velog.io/@cada/토근-기반-인증에서-bearer는-무엇일까
-    interface GoogleUserInfo {
-      id?: string,
-      email?: string,
-      verified_email?: boolean,
-      name?: string,
-      given_name?: string,
-      family_name?: string,
-      picture?: string,
-      locale?: string
-    }
-    const GOOGLE_USERINFO_URL: string = 'https://www.googleapis.com/oauth2/v2/userinfo';
-    const res2 = await axios.get<GoogleUserInfo>(GOOGLE_USERINFO_URL, {
-      headers: {
-        Authorization: 'Bearer' + token,
-      },
-    });
-
-    // 사용자 정보를 불러오는데 실패
-    if (!res2.data.id) throw new Error('09');
-    const userID = 'google-' + res2.data.id;
-
-    // 가입되어있는 id인지 검사
-    const [resSQL1] = await mySQL.query<UserSQLTable[]>(`SELECT user_serial 
-      FROM user
-      WHERE id='${userID}'`
-    );
-
-    let user_serial;
-    if (resSQL1[0]?.user_serial) {
-      user_serial = resSQL1[0].user_serial
-    } else {
-
-      // 가입되어있지 않은 ID
-      // DB에 회원정보 생성
-      const [resSQL2] = await mySQL.query(`INSERT INTO user(id) 
-        VALUES('${userID}')`
-      );
-
-      // DB에 회원정보 생성 실패
-      if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
-
-      // 해당 아이디 정보
-      const [resSQL3] = await mySQL.query<UserSQLTable[]>(`SELECT user_serial 
-        FROM user
-        WHERE id='${userID}'`
-      );
-
-      // DB에서 회원정보를 불러오는데 실패
-      if (!resSQL3[0].user_serial) throw new Error('06');
-
-      user_serial = resSQL3[0].user_serial;
-    }
-    await mySQL.commit();
-
-    const payload = {
-      serial: user_serial,
-      userid: userID,
-      exp: '추가예정'
-    };
-
-    // JWT 생성
-    const jwtToken = createToken(payload);
-    // JWT토큰생성 실패
-    if (!jwtToken) throw new Error('10');
-
-    // 생성한 토큰을 쿠키로 만들어서 브라우저에게 전달
-    res.cookie('accessToken', jwtToken, {
-      path: '/',
-      httpOnly: true
-    });
-
-    res.redirect('http://localhost:3000/');
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      if (error.message = '06') errorMessage = 'DB 업데이트에 실패하였습니다';
-      if (error.message = '07') errorMessage = '구글 코드를 받아오는데 실패했습니다';
-      if (error.message = '08') errorMessage = '구글 토큰을 받아오는데 실패했습니다';
-      if (error.message = '09') errorMessage = '구글 사용자 정보를 받아오는데 실패했습니다';
-      if (error.message = '10') errorMessage = 'JWT 토큰 생성에 실패했습니다';
-    } else {
-      errorMessage = String(error);
-    }
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-
-})
-
-// 댓글 삭제 api
-app.delete('/comment/:serial', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    // 올바르지않은 path
-    if (!req.params.serial || isNaN(Number(req.params.serial))) throw new Error('01');
-    const reqCommentSerial = Number(req.params.serial);
-
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    await mySQL.beginTransaction();
-
-    const [resSQL1] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-      FROM comment
-      WHERE comment_serial=${reqCommentSerial}`
-    );
-
-    // 댓글이 존재하지 않음
-    if (!resSQL1[0]) throw new Error('04');
-
-    // 댓글 작성 유저와 로그인한 유저가 동일하지 않음
-    if (resSQL1[0].user_serial !== userSerial && userID !== 'admin') throw new Error('05');
-
-    // 대댓글이 있는지 확인
-    const [resSQL2] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-      FROM comment
-      WHERE reply=${reqCommentSerial}`
-    );
-
-    if (resSQL2.length > 0) { // 대댓글이 있으면
-      // erase 업데이트
-      const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`UPDATE comment
-        SET erase=1
-        WHERE comment_serial=${reqCommentSerial}`
-      );
-
-      // DB 업데이트 실패
-      if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
-
-      await mySQL.commit();
-
-      res.send({
-        result: {
-          commentState: 'erase'
-        },
-        error: false
-      })
-    } else {  //대댓글이 없으면
-      // 삭제
-      const [resSQL4] = await mySQL.query(`DELETE FROM comment 
-        WHERE comment_serial=${reqCommentSerial}`
-      );
-      // DB 업데이트 실패
-      if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
-
-      await mySQL.commit();
-
-      res.send({
-        result: {
-          commentState: 'delete'
-        },
-        error: false
-      })
-    }
-
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-      if (error.message = '01') errorMessage = '요청이 잘못되었습니다';
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    });
-  } finally {
-    mySQL.release();
-  }
-});
-
-// // 댓글 삭제 api
-// app.delete('/comment/delete/:serial', async (req, res) => {
-//   const mySQL = await mySQLPool.getConnection();
-
-//   try {
-//     // 올바르지않은 path
-//     if (!req.params.serial || isNaN(Number(req.params.serial))) throw new Error('01');
-//     const reqCommentSerial = Number(req.params.serial);
-
-//     const { serial: userSerial, id: userID } = req.user;
-//     // 유저 검증 미들웨어 문제
-//     if (!req.user || !userID) throw new Error('02');
-//     // 로그인하지 않음
-//     if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-//     await mySQL.beginTransaction();
-
-//     const [resSQL1] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-//       FROM comment
-//       WHERE comment_serial=${reqCommentSerial}`
-//     );
-
-//     // 댓글이 존재하지 않음
-//     if (!resSQL1[0]) throw new Error('04');
-
-//     // 댓글 작성 유저와 로그인한 유저가 동일하지 않음
-//     if (resSQL1[0].user_serial !== userSerial && userID !== 'admin') throw new Error('05');
-
-
-//     // 대댓글인지확인
-//     // 대댓글이면
-//     if (resSQL1[0].reply) {
-//       //삭제
-//       const [resSQL2] = await mySQL.query(`DELETE FROM comment 
-//       WHERE comment_serial=${reqCommentSerial}`
-//       );
-
-//       // DB 업데이트 실패
-//       if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
-
-//       // 상위 댓글의 대댓글 검색
-//       const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-//         FROM comment
-//         WHERE reply=${resSQL1[0].reply}`
-//       );
-
-//       // 상위 댓글확인
-//       const [resSQL4] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-//       FROM comment
-//       WHERE comment_serial=${resSQL1[0].reply}`
-//       );
-
-//       // 상위 댓글의 대댓글이 없고 상위 댓글의 erase가 true라면
-//       if (resSQL3.length === 0 || resSQL4[0].erase) {
-//         //상위 댓글도 삭제
-//         const [resSQL5] = await mySQL.query(`DELETE FROM comment 
-//         WHERE comment_serial=${resSQL1[0].reply}`
-//         );
-
-//         // DB 업데이트 실패
-//         if (!('affectedRows' in resSQL5) || !resSQL5.affectedRows) throw new Error('06');
-//       }
-
-//       await mySQL.commit();
-//       res.send({
-//         result: {
-//           commentState: 'delete'
-//         },
-//         error: false
-//       })
-//     } else {
-
-//       // 대댓글이 있는지 확인
-//       const [resSQL2] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-//       FROM comment
-//       WHERE reply=${reqCommentSerial}`
-//       );
-
-//       if (resSQL2.length > 0) { // 대댓글이 있으면
-//         // erase 업데이트
-//         const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`UPDATE comment
-//         SET erase=1
-//         WHERE comment_serial=${reqCommentSerial}`
-//         );
-
-//         // DB 업데이트 실패
-//         if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
-
-//         await mySQL.commit();
-
-//         res.send({
-//           result: {
-//             commentState: 'erase'
-//           },
-//           error: false
-//         })
-//       } else {  //대댓글이 없으면
-//         // 삭제
-//         const [resSQL4] = await mySQL.query(`DELETE FROM comment 
-//         WHERE comment_serial=${reqCommentSerial}`
-//         );
-//         // DB 업데이트 실패
-//         if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
-
-//         await mySQL.commit();
-
-//         res.send({
-//           result: {
-//             commentState: 'delete'
-//           },
-//           error: false
-//         })
-//       }
-
-//     }
-
-//   } catch (error) {
-//     await mySQL.rollback();
-
-//     let errorMessage = '알 수 없는 오류입니다';
-//     if (error instanceof Error) {
-//       errorMessage = alertMessage(error.message);
-//       if (error.message = '01') errorMessage = '요청이 잘못되었습니다';
-//     } else {
-//       errorMessage = String(error);
-//     }
-
-//     res.send({
-//       result: false,
-//       error: errorMessage
-//     });
-//   } finally {
-//     mySQL.release();
-//   }
-// });
-
-// // 댓글 삭제 api 리뉴얼
-// app.delete('/comment/:serial', async (req, res) => {
-//   const mySQL = await mySQLPool.getConnection();
-
-//   try {
-
-//     // 올바르지않은 path
-//     if (!req.params.serial || isNaN(Number(req.params.serial)) || isNaN(Number(req.body.boardSerial))) throw new Error('01');
-//     const reqCommentSerial = Number(req.params.serial);
-//     const reqBoardSerial = Number(req.body.boardSerial);
-
-//     const { serial: userSerial, id: userID } = req.user;
-//     // 유저 검증 미들웨어 문제
-//     if (!req.user || !userID) throw new Error('02');
-//     // 로그인하지 않음
-//     if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-//     await mySQL.beginTransaction();
-
-//     const [comments] = await mySQL.query<CommentSQLTable[]>(`SELECT *
-//       FROM comment
-//       WHERE board_serial=${reqBoardSerial}`
-//     );
-
-//     // 댓글이 존재하지 않음
-//     if (comments.length) throw new Error('04');
-
-//     // 요청 댓글
-//     const reqCommentArr: CommentSQLTable[] = [];
-//     for (let i = 0; i < comments.length; i++) {
-//       if (comments[i].comment_serial === reqCommentSerial) {
-
-//         reqCommentArr.push(comments[i]);
-//         break;
-//       }
-//     }
-//     const reqComment = reqCommentArr[0];
-
-//     // 댓글 작성 유저와 로그인한 유저가 동일하지 않음
-//     if (reqComment.user_serial !== userSerial && userID !== 'admin') throw new Error('05');
-
-//     // 대댓글인지확인
-//     // 대댓글이면
-//     if (reqComment.reply) {
-//       //삭제
-//       const [resSQL] = await mySQL.query(`DELETE FROM comment 
-//         WHERE comment_serial=${reqCommentSerial}`
-//       );
-
-//       // DB 업데이트 실패
-//       if (!('affectedRows' in resSQL) || !resSQL.affectedRows) throw new Error('06');
-
-//       // 상위 댓글의 대댓글 검색
-//       const replys: CommentSQLTable[] = [];
-//       comments.forEach(e => {
-//         if (e.reply === reqComment.reply) replys.push(e);
-//       });
-
-//       // 상위 댓글확인
-//       const upperCommentArr: CommentSQLTable[] = [];
-//       comments.forEach(e => {
-//         if (e.comment_serial === reqComment.reply) upperCommentArr.push(e);
-//       });
-
-//       const upperComment = upperCommentArr[0];
-
-//       // 상위 댓글의 대댓글이 없고 상위 댓글의 erase가 true라면
-//       if (replys.length < 2 || upperComment.erase) {
-//         //상위 댓글도 삭제
-//         const [resSQL2] = await mySQL.query(`DELETE FROM comment 
-//           WHERE comment_serial=${upperComment.comment_serial}`
-//         );
-
-//         // DB 업데이트 실패
-//         if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
-//       }
-
-//       await mySQL.commit();
-//       res.send({
-//         result: {
-//           commentState: 'delete'
-//         },
-//         error: false
-//       })
-//     } else {
-
-//       // 대댓글이 있는지 확인
-//       const replys: CommentSQLTable[] = [];
-//       for (let i = 0; i < comments.length; i++) {
-//         if (comments[i].reply === reqCommentSerial) replys.push(comments[i]);
-//       }
-
-//       if (replys.length > 0) { // 대댓글이 있으면
-//         // erase 업데이트
-//         const [resSQL3] = await mySQL.query<CommentSQLTable[]>(`UPDATE comment
-//         SET erase=1
-//         WHERE comment_serial=${reqCommentSerial}`
-//         );
-
-//         // DB 업데이트 실패
-//         if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
-
-//         await mySQL.commit();
-
-//         res.send({
-//           result: {
-//             commentState: 'erase'
-//           },
-//           error: false
-//         })
-//       } else {  //대댓글이 없으면
-//         // 삭제
-//         const [resSQL4] = await mySQL.query(`DELETE FROM comment 
-//         WHERE comment_serial=${reqCommentSerial}`
-//         );
-//         // DB 업데이트 실패
-//         if (!('affectedRows' in resSQL4) || !resSQL4.affectedRows) throw new Error('06');
-
-//         await mySQL.commit();
-
-//         res.send({
-//           result: {
-//             commentState: 'delete'
-//           },
-//           error: false
-//         })
-//       }
-
-//     }
-
-//   } catch (error) {
-//     await mySQL.rollback();
-
-//     let errorMessage = '알 수 없는 오류입니다';
-//     if (error instanceof Error) {
-//       errorMessage = alertMessage(error.message);
-//       if (error.message = '01') errorMessage = '요청이 잘못되었습니다';
-//     } else {
-//       errorMessage = String(error);
-//     }
-
-//     res.send({
-//       result: false,
-//       error: errorMessage
-//     });
-//   } finally {
-//     mySQL.release();
-//   }
-// });
 
 
 // 유저 인증 정보
@@ -1193,7 +185,7 @@ app.get('/user/verify', (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
+    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
 
     res.send({
       result: {
@@ -1204,11 +196,12 @@ app.get('/user/verify', (req, res) => {
     })
 
   } catch (err) {
-    let errMessage = '';
-    if (err instanceof Error) {
-      errMessage = alertMessage(err.message);
+    let errMessage = '알 수 없는 오류입니다';
+    if (err instanceof CustomError) {
+      errMessage = err.message;
     } else {
       errMessage = String(err);
+      console.log(err);
     }
 
     res.send({
@@ -1225,9 +218,9 @@ app.get('/user/profile', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
+    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
+    if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
     await mySQL.beginTransaction();
     const [result] = await mySQL.query<UserSQLTable[]>(
@@ -1237,225 +230,30 @@ app.get('/user/profile', async (req, res) => {
     );
 
     // DB 읽기 오류
-    if (!result[0]) throw new Error('04');
+    if (!result[0]) throw new CustomError('04');
 
     res.send({
       result: result[0],
       error: false,
     });
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다'
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-      if (errorMessage = '04') return 'DB에서 사용자 정보를 읽어오는데 실패했습니다';
+  } catch (err) {
+    let errMessage = '알 수 없는 오류입니다';
+    if (err instanceof CustomError) {
+      errMessage = err.message;
     } else {
-      errorMessage = String(error);
+      errMessage = String(err);
+      console.log(err);
     }
 
     res.send({
       result: false,
-      error: errorMessage
-    })
-
-  } finally {
-    mySQL.release();
-  }
-});
-
-// 유저 코인 정보
-app.get('/user/coin', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    const { market: reqMarket } = req.query;
-    // 쿼리값이 없음
-    if (!reqMarket) throw new Error('01')
-
-    await mySQL.beginTransaction();
-
-    // 요청한 마켓의 유저 코인정보
-    const [resSQL1] = await mySQL.query<CoinSQLTable[]>(
-      `SELECT market, price, amount
-      FROM coin
-      WHERE user_serial=${userSerial}`
-    );
-
-    // 요청한 유저의 거래 히스토리
-    const [resSQL2] = await mySQL.query<TradeSQLTable[]>(
-      `SELECT *
-      FROM trade
-      WHERE user_serial=${req.user.serial} AND market='${reqMarket}'
-      ORDER BY trade_serial DESC
-      LIMIT 5`
-    );
-
-    res.send({
-      result: {
-        coin: resSQL1,
-        history: resSQL2
-      },
-      error: false,
+      error: errMessage
     });
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '알 수 없는 오류입니다';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    })
-
-  } finally {
-    mySQL.release();
-  }
-
-});
-
-// 코인 모의 거래 요청
-app.post('/user/coin/trade', async (req, res) => {
-  const mySQL = await mySQLPool.getConnection();
-
-  try {
-    const { request: reqType, market: reqMarketCode } = req.body;
-    const reqAmount = Number(req.body.amount);
-
-    // 요청값이 없거나 타입에 문제가 있음
-    if (typeof reqType !== 'string' || typeof reqMarketCode !== 'string' || typeof reqAmount !== 'number') throw new Error('01');
-  
-    const { serial: userSerial, id: userID } = req.user;
-    // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
-    // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
-
-    let reqMarketTicker: Ticker | null = null;
-    for (let i = 0; i < gTicker.length; i++) {
-      if (gTicker[i].market === reqMarketCode) {
-        reqMarketTicker = gTicker[i];
-        break;
-      }
-    }
-
-    // 요청한 마켓과 일치하는 ticker 데이터를 찾을 수 없음
-    if (!reqMarketTicker) throw new Error('11')
-    // 요청한 마켓의 현재가
-    const { trade_price: reqMarketPrice } = reqMarketTicker;
-    
-    await mySQL.beginTransaction();
-
-    // 유저의 요청한 코인 보유 수량 불러오기
-    const [resSQL1] = await mySQL.query<CoinSQLTable[]>(`SELECT *
-      FROM coin
-      WHERE user_serial=${userSerial}`
-    );
-
-    const marketIndex = resSQL1.findIndex((e) => {
-      return e.market === reqMarketCode;
-    })
-    
-    const reqMarketAsset: { market: string, price: number, amount: number } = { market: reqMarketCode, price: 0, amount: 0 };
-    if (marketIndex > -1) {
-      reqMarketAsset.price = resSQL1[marketIndex].price || 0
-      reqMarketAsset.amount = resSQL1[marketIndex].amount || 0
-    }
-    
-    const krwIndex = resSQL1.findIndex((e) => {
-      return e.market === 'KRW';
-    })
-
-    const krwAsset: { market: string, price: number, amount: number } = { market: 'KRW', price: 1, amount: 0 };
-    if (krwIndex > -1) krwAsset.amount = resSQL1[krwIndex].amount || 0;
-
-    if (reqType === 'buy') {
-      // 요청한 코인 수량 및 평단가 반영
-      const totalReqPrice = reqMarketPrice * reqAmount
-      reqMarketAsset.price = (reqMarketAsset.amount * reqMarketAsset.price + totalReqPrice) / (reqMarketAsset.amount + reqAmount);
-      reqMarketAsset.amount = reqMarketAsset.amount + reqAmount;
-      krwAsset.amount = krwAsset.amount - totalReqPrice;
-
-    } else if (req.body.request === 'sell') {
-      if(reqMarketAsset.amount < reqAmount) throw new Error('');
-      // 요청한 코인 수량 및 평단가 반영
-      const totalReqPrice = reqMarketPrice * reqAmount
-      const totalMarketAsset = reqMarketAsset.amount * reqMarketAsset.price
-      if (reqMarketAsset.amount === reqAmount) reqMarketAsset.price = 0;
-      else reqMarketAsset.price = (totalMarketAsset - totalReqPrice) / (reqMarketAsset.amount - reqAmount);
-      reqMarketAsset.amount = reqMarketAsset.amount - reqAmount;
-      krwAsset.amount = krwAsset.amount + totalReqPrice;
-
-    } else {
-      // 요청타입에 문제가 있음 - buy/sell 중 하나가 아님
-      throw new Error('');
-    }
-
-    // 보유 코인 및 원화 수정
-    const [resSQL2] = await mySQL.query(`
-      INSERT INTO coin(user_serial, market, price, amount)
-      VALUES
-        (${userSerial}, '${reqMarketCode}', ${reqMarketAsset.price}, ${reqMarketAsset.amount}),
-        (${userSerial}, 'KRW', 1, ${krwAsset.amount})
-      ON DUPLICATE KEY UPDATE 
-        price=VALUES(price), 
-        amount=VALUES(amount)`
-    );
-
-    // DB 추가 실패
-    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
-
-    // 매매 히스토리 기록
-    const tradeType = reqType === 'buy' ? true : false;
-    const [resSQL3] = await mySQL.query(`INSERT INTO trade(user_serial, market, trading, amount, price, date)
-      VALUES(${userSerial}, '${reqMarketCode}', ${tradeType}, ${reqAmount}, ${reqMarketPrice} , NOW())`
-    );
-
-    // DB 추가 실패
-    if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
-
-    const [resSQL4] = await mySQL.query<CoinSQLTable[]>(`SELECT *
-      FROM coin
-      WHERE user_serial=${userSerial}`
-    );
-
-    await mySQL.commit();
-
-    res.send({
-      result: resSQL4,
-      error: false,
-    });
-
-  } catch (error) {
-    await mySQL.rollback();
-
-    let errorMessage = '';
-    if (error instanceof Error) {
-      errorMessage = alertMessage(error.message);
-    } else {
-      errorMessage = String(error);
-    }
-
-    res.send({
-      result: false,
-      error: errorMessage
-    })
-
   } finally {
     mySQL.release();
   }
 });
+
 
 //404 Middleware
 app.use((req, res, next) => { // 404 처리 부분

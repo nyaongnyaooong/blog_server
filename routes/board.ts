@@ -99,7 +99,6 @@ router.post("/board/post", async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -164,7 +163,6 @@ router.patch("/board/:serial", async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -237,7 +235,6 @@ router.get('/board/:serial', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -304,7 +301,6 @@ router.delete('/board/:serial', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -365,7 +361,6 @@ router.post('/comment', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -433,7 +428,6 @@ router.patch('/comment', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -588,7 +582,6 @@ router.delete('/comment/:serial', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 

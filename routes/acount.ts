@@ -126,7 +126,6 @@ router.post('/login/post', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -203,7 +202,6 @@ router.post('/register/post', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -287,7 +285,6 @@ router.patch('/user/password', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -307,7 +304,7 @@ router.delete('/user', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new CustomError('02');
+    if (!req.user || !userID) throw new Error('02');
     // 로그인하지 않음
     if (!userSerial || userID === 'anonymous') throw new CustomError('03');
 
@@ -351,43 +348,24 @@ router.delete('/user', async (req, res) => {
     //   WHERE user_serial=${userSerial}
     // `);
 
-    // DELETE FROM comment, board
-    // USING comment LEFT JOIN board
-    // ON comment.board_serial = board.board_serial
-    // WHERE comment.board_serial = ${reqPostSerial}
-
-
-    // const [resSQL2] = await mySQL.query(`
-    //   DELETE t1, t2, t3, t4, t5
-    //   FROM comment AS t1, board AS t2, trade AS t3, coin AS t4, user AS t5
-    //   WHERE t1.user_serial = t2.user_serial
-    //   AND t2.user_serial = t3.user_serial
-    //   AND t3.user_serial = t4.user_serial
-    //   AND t4.user_serial = t5.user_serial
-    //   AND t5.user_serial = ${userSerial} 
-    // `);
-
     // const [resSQL2] = await mySQL.query(`
     //   DELETE
-    //   FROM t1, t2, t3, t4, t5
-    //     USING comment AS t1 LEFT JOIN board AS t2 LEFT JOIN trade AS t3 LEFT JOIN coin AS t4 LEFT JOIN user AS t5
-    //   WHERE t1.user_serial = t2.user_serial
-    //     AND t2.user_serial = t3.user_serial
-    //     AND t3.user_serial = t4.user_serial
-    //     AND t4.user_serial = t5.user_serial
-    //     AND t5.user_serial = ${userSerial} 
+    //   FROM comment, board, trade, coin, user
+    //     USING comment JOIN board JOIN trade JOIN coin JOIN user
+    //     ON comment.user_serial = board.user_serial
+    //     AND board.user_serial = trade.user_serial
+    //     AND trade.user_serial = coin.user_serial
+    //     AND coin.user_serial = user.user_serial
+    //   WHERE comment.user_serial = ${userSerial} 
     // `);
 
-    const [resSQL2] = await mySQL.query(`
-      DELETE
-      FROM comment, board, trade, coin, user
-        USING comment JOIN board JOIN trade JOIN coin JOIN user
-        ON comment.user_serial = board.user_serial
-        AND board.user_serial = trade.user_serial
-        AND trade.user_serial = coin.user_serial
-        AND coin.user_serial = user.user_serial
-      WHERE comment.user_serial = ${userSerial} 
-    `);
+    await mySQL.query(`
+      DELETE FROM comment WHERE user_serial = ?;
+      DELETE FROM board WHERE user_serial = ?;
+      DELETE FROM trade WHERE user_serial = ?;
+      DELETE FROM coin WHERE user_serial = ?;
+      DELETE FROM user WHERE user_serial = ?;
+    `, [userSerial, userSerial, userSerial, userSerial, userSerial]);
 
     await mySQL.commit();
 
@@ -409,7 +387,6 @@ router.delete('/user', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -447,7 +424,7 @@ router.get('/google/redirect', async (req, res) => {
   try {
     const { code } = req.query;
     // 구글코드 발급이 정상적으로 되지 않았을 경우
-    if (typeof code !== 'string') throw new CustomError('07');
+    if (typeof code !== 'string') throw new CustomError('구글에 정보 요청하는데에 있어 문제가 발생했습니다');
 
     const GOOGLE_TOKEN_URL: string = 'https://oauth2.googleapis.com/token';
     // 토큰 요청
@@ -461,7 +438,7 @@ router.get('/google/redirect', async (req, res) => {
 
     const token = res1.data.access_token;
     // 토큰 발급이 정상적으로 되지 않았을 경우
-    if (typeof token !== 'string') throw new CustomError('08');
+    if (typeof token !== 'string') throw new CustomError('구글에 정보 요청하는데에 있어 문제가 발생했습니다');
 
     // 사용자 정보 요청
     // Bearer에 대한 정보는 아래 URL에서 확인
@@ -545,7 +522,6 @@ router.get('/google/redirect', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 

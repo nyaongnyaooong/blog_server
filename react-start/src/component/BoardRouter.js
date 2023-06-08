@@ -74,11 +74,11 @@ const BoardPostUpdate = (props) => {
   let content = postData.content;
 
   // 발행 버튼 - 수정요청 함수
-  const putPost = async () => {
+  const patchPost = async () => {
     try {
       const response = await axios.request({
-        method: 'put',
-        url: '/board/put/' + serial,
+        method: 'patch',
+        url: '/board/' + serial,
         data: {
           postSerial: serial,
           title: title,
@@ -113,7 +113,7 @@ const BoardPostUpdate = (props) => {
           }}
         />
       </div>
-      <div className='board_post_complete'><button onClick={putPost}>발행</button></div>
+      <div className='board_post_complete'><button onClick={patchPost}>발행</button></div>
 
     </div>
   )

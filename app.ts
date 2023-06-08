@@ -164,11 +164,10 @@ app.use('/', require(path.join(__dirname, './routes/coin')));
 app.use('/', require(path.join(__dirname, './routes/board')));
 
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-})
-
-
+// app.get('/', (req, res) => {
+//   console.log(1);
+//   res.sendFile(path.join(__dirname, '/index.html'));
+// })
 
 
 app.get('/domain', (req, res) => {
@@ -200,7 +199,6 @@ app.get('/user/verify', (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -241,7 +239,6 @@ app.get('/user/profile', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 

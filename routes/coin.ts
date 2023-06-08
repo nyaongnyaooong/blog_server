@@ -113,7 +113,6 @@ router.get('/user/coin/all', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -173,7 +172,6 @@ router.get('/user/coin', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 
@@ -314,7 +312,6 @@ router.post('/user/coin/trade', async (req, res) => {
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
-      errMessage = String(err);
       console.log(err);
     }
 

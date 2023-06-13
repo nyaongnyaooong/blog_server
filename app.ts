@@ -21,7 +21,7 @@ import { ResultSetHeader } from 'mysql2';
 
 // Express
 const app = express();
-app.set('port', 80);
+
 
 // dotenv
 dotenv.config();
@@ -31,6 +31,8 @@ const options = {
   cert: fs.readFileSync('./key/nyaong.myddns.me-crt.pem')
 };
 
+app.set('httpPort', process.env.HTTP_PORT || 80);
+app.set('httpsPort', process.env.HTTPS_PORT || 443);
 
 
 /*
@@ -283,11 +285,11 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => { // ì—ë
 // });
 
 // Create an HTTPS service identical to the HTTP service.
-https.createServer(options, app).listen(443, () => {
-  console.log('server is running on 443')
+https.createServer(options, app).listen(app.get('httpsPort'), () => {
+  console.log('server is running on ' + app.get('httpsPort'));
 });
 
 // Create an HTTP service.
-http.createServer(app).listen(8080, () => {
-  console.log('server is running on 8080')
+http.createServer(app).listen(app.get('httpPort'), () => {
+  console.log('server is running on ' + app.get('httpPort'));
 });

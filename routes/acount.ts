@@ -418,7 +418,8 @@ router.get('/login/google', (req, res) => {
 // 사용자 정보 요청 api
 // 쿼리스트링으로 구글코드를 받아 google api에 토큰을 요청 후 응답받은 토큰으로 사용자 정보 재요청
 router.get('/google/redirect', async (req, res) => {
-  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = process.env;
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET } = process.env;
+  const GOOGLE_REDIRECT_URI = 'https://' + req.hostname + '/google/redirect';
 
   const mySQL = await mySQLPool.getConnection();
 
@@ -437,7 +438,7 @@ router.get('/google/redirect', async (req, res) => {
       grant_type: 'authorization_code',
     });
 
-    const token = res1.data.access_token;
+    const token = res1?.data.access_token;
     // 토큰 발급이 정상적으로 되지 않았을 경우
     if (typeof token !== 'string') throw new CustomError('구글에 정보 요청하는데에 있어 문제가 발생했습니다');
 

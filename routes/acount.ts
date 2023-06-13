@@ -404,7 +404,7 @@ router.delete('/user', async (req, res) => {
 // 구글 로그인 페이지로 리다이렉션 라우터
 router.get('/login/google', (req, res) => {
   const { GOOGLE_CLIENT_ID } = process.env;
-  const GOOGLE_REDIRECT_URI = 'https://' + req.hostname;
+  const GOOGLE_REDIRECT_URI = 'https://' + req.hostname + '/google/redirect';
 
   const GOOGLE_OAUTH_URI: string = 'https://accounts.google.com/o/oauth2/v2/auth';
   const queryClientID = '?client_id=' + GOOGLE_CLIENT_ID;

@@ -892,6 +892,9 @@ ul {
 
         th {
           padding: 5px;
+          &:hover {
+            cursor: pointer;
+          }
         }
       }
 

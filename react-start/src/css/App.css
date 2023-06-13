@@ -737,6 +737,9 @@ ul {
 .content-coin .coin-table table thead th {
   padding: 5px;
 }
+.content-coin .coin-table table thead th:hover {
+  cursor: pointer;
+}
 .content-coin .coin-table table tbody {
   font-size: 12px;
   /* 글자 사이 간격 */

@@ -440,7 +440,7 @@ const BoardPostRead = (props) => {
         dateKST_String = date;
       } else {
         const dateKST = new Date(date)
-        dateKST.setHours(dateKST.getHours() + 9);
+        dateKST.setHours(dateKST.getHours());
         dateKST_String = dateKST.toLocaleString();
       }
 
@@ -460,7 +460,7 @@ const BoardPostRead = (props) => {
         if (reply_date === '방금 전') reply_dateKST_String = f.date;
         else {
           const reply_dateKST = new Date(f.date)
-          reply_dateKST.setHours(reply_dateKST.getHours() + 9);
+          reply_dateKST.setHours(reply_dateKST.getHours());
           reply_dateKST_String = reply_dateKST.toLocaleString();
         }
 

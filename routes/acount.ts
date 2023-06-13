@@ -35,7 +35,7 @@ const hashPW: HashPW = (pw, salt = undefined) => {
   try {
     salt = salt || crypto.randomBytes(64).toString('hex');
     const repeat: number = Number(process.env.HASH_REPEAT_NUM);
-    if (!process.env.HASH_ALGORITHM) throw new CustomError('No hash algorithm')
+    if (!process.env.HASH_ALGORITHM) throw new Error('해시알고리즘이 없습니다')
 
     const algorithm = process.env.HASH_ALGORITHM;
     const key = crypto.pbkdf2Sync(pw, salt, repeat, 64, algorithm).toString('hex');
@@ -48,7 +48,7 @@ const hashPW: HashPW = (pw, salt = undefined) => {
     };
 
   } catch (error) {
-    if (error instanceof Error) {
+    if (error instanceof CustomError) {
       return {
         result: false,
         error: error.message
@@ -81,17 +81,17 @@ router.post('/login/post', async (req, res) => {
     `);
 
     // db에 ID가 존재하지 않음
-    if (!resSQL[0]) throw new CustomError('01');
+    if (!resSQL[0]) throw new CustomError('존재하지 않는 아이디입니다');
     const { user_serial, id, salt, hash } = resSQL[0];
 
     // 로그인 요청한 PW 해시화
     const { result: hashResult, error: hashError } = hashPW(loginPW, salt);
     // 해시화 실패
-    if (hashError) throw new CustomError(hashError);
-    if (!hashResult) throw new CustomError('03');
+    if (hashError) throw new Error(hashError);
+    if (!hashResult) throw new Error('해시화에 실패하였습니다');
 
     const { key } = hashResult;
-    if (key != hash) throw new CustomError('02');
+    if (key != hash) throw new CustomError('비밀번호가 틀렸습니다');
 
     // payload
     const payload: Payload = {
@@ -158,9 +158,9 @@ router.post('/register/post', async (req, res) => {
 
   try {
     // 요청한 ID String이 없을 경우
-    if (!reqStrID) throw new CustomError('01');
+    if (!reqStrID) throw new CustomError('아이디를 입력해주세요');
     // 요청한 Password String이 없을 경우
-    if (!reqStrPW) throw new CustomError('02');
+    if (!reqStrPW) throw new CustomError('비밀번호를 입력해주세요');
     if (reqStrID.length < 4) throw new CustomError('아이디는 4글자 이상만 사용할 수 있습니다');
     if (reqStrPW.length < 8) throw new CustomError('패스워드는 8자 이상 입력해주세요');
 
@@ -171,30 +171,29 @@ router.post('/register/post', async (req, res) => {
     WHERE id='${reqStrID}'`);
 
     // 중복되는 ID가 있음
-    if (resSQL1[0]) throw new CustomError('05');
+    if (resSQL1[0]) throw new CustomError('이미 가입되어있는 아이디입니다');
 
     // PW Hash화
     const { result, error } = hashPW(reqStrPW);
 
     const { key, salt } = result || { key: null, salt: null };
     // 해시화에 실패 했을 경우 - key salt 생성 실패
-    if (!key || !salt) throw new CustomError('03');
+    if (!key || !salt) throw new CustomError('해시화에 실패했습니다');
     // 해시화에 실패 했을 경우 - 기타 오류
-    if (error) throw new CustomError('03');
+    if (error) throw new CustomError('해시화에 실패했습니다');
 
     const [resSQL2] = await mySQL.query(`INSERT INTO user(id, salt, hash) 
     VALUES('${reqStrID}', '${salt}', '${key}')`);
 
     await mySQL.commit();
-    if ('affectedRows' in resSQL2 && resSQL2.affectedRows) {
-      res.send({
-        result: true,
-        error: false,
-      })
-    } else {
-      // DB 입력 실패
-      throw new CustomError('04');
-    }
+
+    // DB 입력 실패
+    // if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new CustomError('04');
+      
+    res.send({
+      result: true,
+      error: false,
+    })
   } catch (err) {
     await mySQL.rollback();
 
@@ -225,9 +224,9 @@ router.patch('/user/password', async (req, res) => {
 
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new CustomError('02');
+    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new CustomError('03');
+    if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
     if (/google-\d+/.test(userID)) throw new CustomError('')
 
@@ -238,17 +237,17 @@ router.patch('/user/password', async (req, res) => {
     `);
 
     // db에 ID가 존재하지 않음
-    if (!resSQL1[0]) throw new CustomError('01');
+    if (!resSQL1[0]) throw new CustomError('존재하지 않는 유저 정보입니다');
     const { salt, hash } = resSQL1[0];
 
     // 로그인 요청한 PW 해시화
     const { result: hashResult, error: hashError } = hashPW(current, salt);
     // 해시화 실패
     if (hashError) throw new CustomError(hashError);
-    if (!hashResult) throw new CustomError('03');
+    if (!hashResult) throw new CustomError('해시화에 실패했습니다');
 
     const { key } = hashResult;
-    if (key != hash) throw new CustomError('02');
+    if (key != hash) throw new CustomError('해시화에 실패했습니다');
 
     // 새로운 PW Hash화
     const { result, error } = hashPW(change);
@@ -304,9 +303,9 @@ router.delete('/user', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
+    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new CustomError('03');
+    if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
     // 유저 정보 확인
     const [resSQL1] = await mySQL.query<User[]>(`
@@ -405,7 +404,7 @@ router.delete('/user', async (req, res) => {
 router.get('/login/google', (req, res) => {
   const { GOOGLE_CLIENT_ID } = process.env;
   const GOOGLE_REDIRECT_URI = 'https://' + req.hostname + '/google/redirect';
-
+  console.log(GOOGLE_REDIRECT_URI)
   const GOOGLE_OAUTH_URI: string = 'https://accounts.google.com/o/oauth2/v2/auth';
   const queryClientID = '?client_id=' + GOOGLE_CLIENT_ID;
   const queryRedirectURI = '&redirect_uri=' + GOOGLE_REDIRECT_URI;
@@ -428,7 +427,7 @@ router.get('/google/redirect', async (req, res) => {
     // 구글코드 발급이 정상적으로 되지 않았을 경우
     if (typeof code !== 'string') throw new CustomError('구글에 정보 요청하는데에 있어 문제가 발생했습니다');
 
-    const GOOGLE_TOKEN_URL: string = 'https://oauth2.googleapis.com/token';
+    const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
     // 토큰 요청
     const res1 = await axios.post(GOOGLE_TOKEN_URL, {
       client_id: GOOGLE_CLIENT_ID,
@@ -516,7 +515,7 @@ router.get('/google/redirect', async (req, res) => {
       httpOnly: true
     });
 
-    res.redirect('http://' + req.hostname);
+    res.redirect('https://' + req.hostname);
   } catch (err) {
     await mySQL.rollback();
 

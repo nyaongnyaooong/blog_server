@@ -71,15 +71,6 @@ const LogInForm = (props) => {
   const [message, setMessage] = useState('');
   const [loginActive, setLoginActive] = useState(true);
 
-
-  const redirectGoogleLogin = async () => {
-    try {
- window.location.assign(window.location.origin + '/login/google');
-    } catch (error) {
-
-    }
-  }
-
   const reqLogIn = async (e) => {
     e.preventDefault();
     if (!loginActive) return

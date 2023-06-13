@@ -4,6 +4,7 @@ import '../css/Board.css'
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
+// import ClassicEditor from '@ckeditor/ckeditor5-editor-classic/src/classiceditor';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { Loading2 } from './Loading';
 

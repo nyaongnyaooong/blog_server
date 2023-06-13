@@ -5,7 +5,8 @@ import morgan from 'morgan';
 import methodOverride from 'method-override';
 import axios from 'axios';
 import cookieParser from 'cookie-parser';
-
+import http from 'http';
+import https from 'https';
 import path from 'path';
 import fs from 'fs';
 
@@ -20,10 +21,15 @@ import { ResultSetHeader } from 'mysql2';
 
 // Express
 const app = express();
-app.set('port', 8080);
+app.set('port', 80);
 
 // dotenv
 dotenv.config();
+
+const options = {
+  key: fs.readFileSync('./key/nyaong.myddns.me-key.pem'),
+  cert: fs.readFileSync('./key/nyaong.myddns.me-crt.pem')
+};
 
 
 
@@ -95,6 +101,13 @@ class CustomError extends Error {
 /*
   미들웨어
 */
+
+// https redirection
+app.use((req, res, next) => {
+  if (req.secure) next();
+  else res.redirect("https://" + req.headers.host + req.url);
+});
+
 //body-parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -155,27 +168,28 @@ app.use((req, res, next) => {
   Routers
 */
 // 사용자 정보 관련 라우터
-app.use('/', require(path.join(__dirname, './routes/acount')));
+app.use('/', require(path.join(__dirname, '/routes/acount')));
 
 // 코인 모의투자 라우터
-app.use('/', require(path.join(__dirname, './routes/coin')));
+app.use('/', require(path.join(__dirname, '/routes/coin')));
 
 // 자유게시판 관련 라우터
-app.use('/', require(path.join(__dirname, './routes/board')));
+app.use('/', require(path.join(__dirname, '/routes/board')));
 
 
-// app.get('/', (req, res) => {
-//   console.log(1);
-//   res.sendFile(path.join(__dirname, '/index.html'));
-// })
+
 
 
 app.get('/domain', (req, res) => {
-  res.send(process.env.DOMAIN);
+  // res.send(process.env.DOMAIN);
+  res.sendFile(path.join(__dirname, '/public/index.html'));
 })
 
 
-
+app.get('/', (req, res) => {
+  console.log(1);
+  res.sendFile(path.join(__dirname, '/public/index.html'));
+})
 
 
 
@@ -264,6 +278,16 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => { // 에�
   res.status(500).send('서버 에러!'); // 500 상태 표시 후 에러 메시지 전송
 });
 
-app.listen(app.get('port'), () => {
-  console.log(`server is running on ${app.get('port')}`);
+// app.listen(app.get('port'), () => {
+//   console.log(`server is running on ${app.get('port')}`);
+// });
+
+// Create an HTTPS service identical to the HTTP service.
+https.createServer(options, app).listen(443, () => {
+  console.log('server is running on 443')
+});
+
+// Create an HTTP service.
+http.createServer(app).listen(8080, () => {
+  console.log('server is running on 8080')
 });

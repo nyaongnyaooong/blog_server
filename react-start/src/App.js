@@ -6,9 +6,9 @@ import './css/animation.css';
 import { LogInForm, RegisterForm } from './component/LogInForm'
 import Nav from './component/Navbar'
 import { Loading2 } from './component/Loading'
-import { Board } from './component/BoardRouter'
-import { Coin } from './component/CoinRouter'
-import { Home } from './component/Test'
+// import { Board } from './component/BoardRouter'
+// import { Coin } from './component/CoinRouter'
+// import { Home } from './component/Test'
 import axios from 'axios';
 
 // 백그라운드 어둡게
@@ -23,10 +23,10 @@ const BgDarker = (props) => {
     setLgnFrmAct(false);
     setRegFrmAct(false);
 
-    divDark.current.classList.replace("zhide", "ani_fadeOutDark");
-    setTimeout(() => {
-      divDark.current.classList.replace("ani_fadeOutDark", "zhide");
-    }, 300);
+    // divDark.current.classList.replace("zhide", "ani_fadeOutDark");
+    // setTimeout(() => {
+    //   divDark.current.classList.replace("ani_fadeOutDark", "zhide");
+    // }, 300);
   };
 
   if (active) return <div ref={divDark} id="fadeOut" className="ani_fadeInDark" onClick={onClickFunction}></div>
@@ -89,7 +89,7 @@ const MyPage = (props) => {
 
       try {
         const response = await axios.delete('/user');
-        console.log(response)
+
         if (response.data.error) throw new Error(response.data.error);
         if (response.data.result) {
           alert('탈퇴되었습니다');
@@ -355,12 +355,12 @@ const MyPage = (props) => {
 
 const Content = (props) => {
   const { page, serial, stateFunctions } = props;
-
-  if (page === 1) return <Coin stateFunctions={stateFunctions} />
-  if (page === 2) return <Board stateFunctions={stateFunctions} serial={serial} />
+  console.log(123)
+  // if (page === 1) return <Coin stateFunctions={stateFunctions} />
+  // if (page === 2) return <Board stateFunctions={stateFunctions} serial={serial} />
   if (page === 3) return <MyPage />
 
-  return <Home />
+  // return <Home />
 };
 
 const App = () => {

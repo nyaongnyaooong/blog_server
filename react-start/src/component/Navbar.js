@@ -1,10 +1,11 @@
+// eslint-disable-next-line
 import axios from 'axios';
-import '../css/Navbar.css'
+import '../css/navbar.css'
 
 const Nav = (props) => {
   const { btnList, btnAct, stateFuncs, userData } = props;
-  const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage, setRefreshPage } = stateFuncs;
-  console.log(btnAct)
+  const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage } = stateFuncs;
+
   //left section (로고, 이름)
   const BtnLeftSect = () => {
     return (
@@ -49,8 +50,8 @@ const Nav = (props) => {
           }}>{userData}</button>
           <button className="btn_login_section" onClick={async () => {
             // document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            const response = await axios.get('/logout');
-            console.log(response.data)
+            await axios.get('/logout');
+
             setUserData('anonymous');
           }}>LogOut</button>
         </div>

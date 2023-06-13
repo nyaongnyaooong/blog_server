@@ -1,10 +1,9 @@
 // eslint-disable-next-line
 
-import '../css/Board.css'
+import '../css/board.css'
 import axios from 'axios';
 import { useState, useEffect } from 'react';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
-// import ClassicEditor from '@ckeditor/ckeditor5-editor-classic/src/classiceditor';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { Loading2 } from './Loading';
 
@@ -75,11 +74,11 @@ const BoardPostUpdate = (props) => {
   let content = postData.content;
 
   // 발행 버튼 - 수정요청 함수
-  const patchPost = async () => {
+  const putPost = async () => {
     try {
       const response = await axios.request({
-        method: 'patch',
-        url: '/board/' + serial,
+        method: 'put',
+        url: '/board/put/' + serial,
         data: {
           postSerial: serial,
           title: title,
@@ -92,7 +91,7 @@ const BoardPostUpdate = (props) => {
       setBoardPage('home')
 
     } catch (error) {
-      console.log(error);
+      alert(error)
     }
   }
 
@@ -114,7 +113,7 @@ const BoardPostUpdate = (props) => {
           }}
         />
       </div>
-      <div className='board_post_complete'><button onClick={patchPost}>발행</button></div>
+      <div className='board_post_complete'><button onClick={putPost}>발행</button></div>
 
     </div>
   )
@@ -319,7 +318,7 @@ const BoardPostRead = (props) => {
         setReplyActive(newState);
 
       } catch (err) {
-        console.log(err);
+        alert(err)
       }
     };
     fetchData();

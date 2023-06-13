@@ -1,3 +1,4 @@
+// eslint-disable-next-line
 import { useEffect, useState } from 'react';
 
 import axios from 'axios';
@@ -73,12 +74,7 @@ const LogInForm = (props) => {
 
   const redirectGoogleLogin = async () => {
     try {
-      const response = await axios.request({
-        method: 'get',
-        url: '/domain',
-      });
-
-      if (response.data) window.location.assign(response.data + '/login/google');
+ window.location.assign(window.location.origin + '/login/google');
     } catch (error) {
 
     }
@@ -102,14 +98,11 @@ const LogInForm = (props) => {
       const response = await axios.post('/login/post', reqObject);
       if (response.data.error) throw new Error(response.data.error);
 
-      if (response.data.result) {
-        setLgnFrmAct(false);
-        setBgDarkAct(false);
-        setUserData(response.data.result);
-      } else {
-        console.log(response.data.error)
-        // throw new Error(response.data.error);
-      }
+      if (!response?.data?.result) throw new Error(response.data.error);
+
+      setLgnFrmAct(false);
+      setBgDarkAct(false);
+      setUserData(response.data.result);
 
     } catch (err) {
       setMessage(err.message);
@@ -183,7 +176,9 @@ const LogInForm = (props) => {
       <FormGroup>
         <div className='oauth'>
           <div className='oauth-button'>
-            <button onClick={redirectGoogleLogin}>
+            <button onClick={() => {
+              window.location.assign(window.location.origin + '/login/google');
+            }}>
               <GoogleLogo /> Google 계정으로 로그인하기
             </button>
           </div>

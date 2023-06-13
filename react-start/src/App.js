@@ -1,14 +1,14 @@
 // eslint-disable-next-line
 import { useState, useRef, useEffect } from 'react';
 
-import './css/App.css';
+import './css/app.css';
 import './css/animation.css';
 import { LogInForm, RegisterForm } from './component/LogInForm'
 import Nav from './component/Navbar'
 import { Loading2 } from './component/Loading'
-// import { Board } from './component/BoardRouter'
-// import { Coin } from './component/CoinRouter'
-// import { Home } from './component/Test'
+import { Board } from './component/BoardRouter'
+import { Coin } from './component/CoinRouter'
+import { Home } from './component/Home'
 import axios from 'axios';
 
 // 백그라운드 어둡게
@@ -23,10 +23,10 @@ const BgDarker = (props) => {
     setLgnFrmAct(false);
     setRegFrmAct(false);
 
-    // divDark.current.classList.replace("zhide", "ani_fadeOutDark");
-    // setTimeout(() => {
-    //   divDark.current.classList.replace("ani_fadeOutDark", "zhide");
-    // }, 300);
+    divDark.current.classList.replace("zhide", "ani_fadeOutDark");
+    setTimeout(() => {
+      divDark.current.classList.replace("ani_fadeOutDark", "zhide");
+    }, 300);
   };
 
   if (active) return <div ref={divDark} id="fadeOut" className="ani_fadeInDark" onClick={onClickFunction}></div>
@@ -355,12 +355,12 @@ const MyPage = (props) => {
 
 const Content = (props) => {
   const { page, serial, stateFunctions } = props;
-  console.log(123)
-  // if (page === 1) return <Coin stateFunctions={stateFunctions} />
-  // if (page === 2) return <Board stateFunctions={stateFunctions} serial={serial} />
+
+  if (page === 1) return <Coin stateFunctions={stateFunctions} />
+  if (page === 2) return <Board stateFunctions={stateFunctions} serial={serial} />
   if (page === 3) return <MyPage />
 
-  // return <Home />
+  return <Home />
 };
 
 const App = () => {
@@ -382,6 +382,7 @@ const App = () => {
   const [pageSerial, setPageSerial] = useState(null);
   const [refreshPage, setRefreshPage] = useState(0);
   // let [loading, setLoading] = useState(true);
+
 
   const stateFunctions = {
     setLgnFrmAct,
@@ -409,10 +410,6 @@ const App = () => {
     fetchData();
   }, []);
 
-  console.log('render')
-  // setTimeout(() => {
-  //   setLoading(false);
-  // }, 900);
 
   return userData ? (
     <div className='app'>

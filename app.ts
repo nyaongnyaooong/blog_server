@@ -179,21 +179,9 @@ app.use('/', require(path.join(__dirname, '/routes/coin')));
 app.use('/', require(path.join(__dirname, '/routes/board')));
 
 
-
-
-
-app.get('/domain', (req, res) => {
-  // res.send(process.env.DOMAIN);
-  res.sendFile(path.join(__dirname, '/public/index.html'));
-})
-
-
 app.get('/', (req, res) => {
-  console.log(1);
   res.sendFile(path.join(__dirname, '/public/index.html'));
 })
-
-
 
 // 유저 인증 정보
 app.get('/user/verify', (req, res) => {

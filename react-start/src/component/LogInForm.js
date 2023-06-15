@@ -3,6 +3,13 @@ import { useEffect, useState } from 'react';
 
 import axios from 'axios';
 
+class CustomError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'CustomError';
+  }
+}
+
 const GoogleLogo = () => {
   return (
     <svg stroke="currentColor" fill="currentColor" strokeWidth="0" version="1.1" x="0px" y="0px" viewBox="0 0 48 48" enableBackground="new 0 0 48 48" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12
@@ -62,8 +69,8 @@ const ErrorMessage = (props) => {
 }
 
 const LogInForm = (props) => {
-  const { active, stateFuncs } = props;
-  const { setLgnFrmAct, setBgDarkAct, setUserData } = stateFuncs;
+  const { active, appSetStates } = props;
+  const { setLgnFrmAct, setBgDarkAct, setUserData } = appSetStates;
 
 
   const [inputID, setInputID] = useState('');
@@ -83,23 +90,29 @@ const LogInForm = (props) => {
       loginPW: inputPW
     }
     try {
-      if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(inputID)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
-      if (!inputID) throw new Error('아이디를 입력해주세요');
-      if (!inputPW) throw new Error('패스워드를 입력해주세요');
-      const response = await axios.post('/login/post', reqObject);
-      if (response.data.error) throw new Error(response.data.error);
+      if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(inputID)) throw new CustomError('입력할 수 없는 문자가 섞여있습니다');
+      if (!inputID) throw new CustomError('아이디를 입력해주세요');
+      if (!inputPW) throw new CustomError('패스워드를 입력해주세요');
 
-      if (!response?.data?.result) throw new Error(response.data.error);
+      const response = await axios.post('/login', reqObject);
 
       setLgnFrmAct(false);
       setBgDarkAct(false);
       setUserData(response.data.result);
 
     } catch (err) {
-      setMessage(err.message);
-      setTimeout(() => {
-        setMessage('');
-      }, 1500)
+      if (err instanceof CustomError) {
+        setMessage(err.message);
+        setTimeout(() => {
+          setMessage('');
+        }, 1500)
+      } else {
+        setMessage(err.response.data.error);
+        setTimeout(() => {
+          setMessage('');
+        }, 1500)
+      }
+
     }
   }
 
@@ -219,14 +232,11 @@ const RegisterForm = (props) => {
       if (!regId) throw new Error('아이디를 입력해주세요');
       if (!regPw) throw new Error('패스워드를 입력해주세요');
 
-      const response = await axios.post('/register/post', reqObject);
-
-      if (response.data.error) throw new Error(response.data.error);
+      const response = await axios.post('/register', reqObject);
 
       window.location.href = window.location.origin;
-
     } catch (err) {
-      setMessage(err.message);
+      setMessage(err.response.data.error);
       setTimeout(() => {
         setMessage('');
       }, 1500)

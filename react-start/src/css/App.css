@@ -555,14 +555,6 @@ ul {
   background-color: steelblue;
 }
 
-/* .button_group button {
-  display: block;
-  border: none;
-  box-sizing: border-box;
-  padding: 5px;
-  width: 250px;
-  height: 25px;
-} */
 .hidden {
   visibility: hidden;
   z-index: -1;
@@ -739,6 +731,7 @@ ul {
 }
 .content-coin .coin-table table thead th:hover {
   cursor: pointer;
+  color: aquamarine;
 }
 .content-coin .coin-table table tbody {
   font-size: 12px;

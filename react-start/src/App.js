@@ -1,5 +1,7 @@
 // eslint-disable-next-line
 import { useState, useRef, useEffect } from 'react';
+import { useCookies } from 'react-cookie';
+
 
 import './css/app.css';
 import './css/animation.css';
@@ -13,8 +15,8 @@ import axios from 'axios';
 
 // 백그라운드 어둡게
 const BgDarker = (props) => {
-  const { active, stateFuncs } = props;
-  const { setBgDarkAct, setLgnFrmAct, setRegFrmAct } = stateFuncs;
+  const { active, appSetStates } = props;
+  const { setBgDarkAct, setLgnFrmAct, setRegFrmAct } = appSetStates;
   const divDark = useRef(null);
 
   // 검은 배경 클릭 했을 때
@@ -58,7 +60,7 @@ const MyPage = (props) => {
 
   // 유저정보 페이지
   const UserInfo = (props) => {
-
+    // 패스워드 변경 실행 함수
     const changePassword = async (current, change, check) => {
       try {
         if (/google-\d+/.test(profileData.id)) throw new Error('구글 계정은 변경할 수 없습니다');
@@ -73,8 +75,6 @@ const MyPage = (props) => {
           }
         });
 
-        if (response.data.error) throw new Error(response.data.error);
-
         if (response.data.result) {
           alert('새로운 비밀번호로 다시 로그인 해주세요')
           window.location.href = window.location.origin;
@@ -85,8 +85,8 @@ const MyPage = (props) => {
       }
     }
 
+    // 탈퇴요청 실행 함수
     const withdraw = async () => {
-
       try {
         const response = await axios.delete('/user');
 
@@ -99,7 +99,6 @@ const MyPage = (props) => {
         alert(err);
       }
     }
-
 
     return profileData ? (
       <div className='page'>
@@ -222,7 +221,7 @@ const MyPage = (props) => {
               <td>원화</td>
               <td>-</td>
               <td>-</td>
-              <td>{amount}</td>
+              <td>{amount.toLocaleString('ko-KR')}</td>
               <td>-</td>
             </tr>
           )
@@ -239,17 +238,31 @@ const MyPage = (props) => {
           totalCurrentPrice += nowPrice * amount;
           totalAsset += nowPrice * amount;
 
+          let classColor = '';
+          if ((nowPrice - price) > 0) classColor += 'colorRed';
+          else if ((nowPrice - price) < 0) classColor += 'colorBlue';
+
           assetHTML.push(
             <tr key={i}>
               <td>{market}</td>
-              <td>{amount}</td>
-              <td>{price}</td>
-              <td>{nowPrice}</td>
-              <td>{parseInt((nowPrice - price) / price * 10000) / 100}</td>
+              <td>{amount.toLocaleString('ko-KR')}</td>
+              <td>{price.toLocaleString('ko-KR')}</td>
+              <td className={classColor}>{nowPrice.toLocaleString('ko-KR')}</td>
+              <td className={classColor}>{parseInt((nowPrice - price) / price * 10000) / 100}</td>
             </tr>
           )
         }
       })
+    }
+
+    const DivTableRow = (props) => {
+      const { colorValue, children } = props;
+      let colorClass = 'divTable-row';
+
+      if (colorValue > 0) colorClass += ' colorRed';
+      else if (colorValue < 0) colorClass += ' colorBlue';
+
+      return <div className={colorClass}>{children}</div>
     }
 
     return ticker.length ? (
@@ -269,21 +282,29 @@ const MyPage = (props) => {
                   <div className='divTable-row divTable-th'>총 평가금액</div>
                 </div>
                 <div className='divTable-cell'>
-                  <div className='divTable-row'>{totalBuyPrice} \</div>
-                  <div className='divTable-row'>{totalCurrentPrice} \</div>
+                  <div className='divTable-row'>{(Math.round(totalBuyPrice * 100) / 100).toLocaleString('ko-KR')} \</div>
+                  <div className='divTable-row'>{(Math.round(totalCurrentPrice * 100) / 100).toLocaleString('ko-KR')} \</div>
                 </div>
                 <div className='divTable-cell'>
                   <div className='divTable-row divTable-th'>총 평가손익</div>
                   <div className='divTable-row divTable-th'>총 평가수익률</div>
                 </div>
                 <div className='divTable-cell'>
-                  <div className='divTable-row'>{totalAsset} \</div>
-                  <div className='divTable-row'>{
+                  {/* <div className='divTable-row'>{Math.round(totalAsset * 100) / 100} \</div> */}
+                  <DivTableRow colorValue={totalAsset}>{(Math.round(totalAsset * 100) / 100).toLocaleString('ko-KR')} \</DivTableRow>
+                  <DivTableRow colorValue={totalCurrentPrice - totalBuyPrice}>{
                     isNaN(parseInt((totalCurrentPrice - totalBuyPrice) / totalBuyPrice * 10000) / 100) ?
                       '-' :
                       parseInt((totalCurrentPrice - totalBuyPrice) / totalBuyPrice * 10000) / 100
                   } %
-                  </div>
+                  </DivTableRow>
+
+                  {/* <div className={'divTable-row'}>{
+                    isNaN(parseInt((totalCurrentPrice - totalBuyPrice) / totalBuyPrice * 10000) / 100) ?
+                      '-' :
+                      parseInt((totalCurrentPrice - totalBuyPrice) / totalBuyPrice * 10000) / 100
+                  } %
+                  </div> */}
                 </div>
               </div>
 
@@ -339,7 +360,7 @@ const MyPage = (props) => {
   return (
     <div className='content_box ani_fadeIn'>
       <div className='mypage'>
-        <div className='title'>
+        <div className='content-title'>
           <h2>마이페이지</h2>
         </div>
         <div className='content'>
@@ -354,10 +375,10 @@ const MyPage = (props) => {
 }
 
 const Content = (props) => {
-  const { page, serial, stateFunctions } = props;
+  const { page, serial, componentPage, appSetStates } = props;
 
-  if (page === 1) return <Coin stateFunctions={stateFunctions} />
-  if (page === 2) return <Board stateFunctions={stateFunctions} serial={serial} />
+  if (page === 1) return <Coin appSetStates={appSetStates} serial={serial} componentPage={componentPage} />
+  if (page === 2) return <Board appSetStates={appSetStates} serial={serial} componentPage={componentPage} />
   if (page === 3) return <MyPage />
 
   return <Home />
@@ -366,23 +387,48 @@ const Content = (props) => {
 const App = () => {
   const navBtnList = ['NyaongNyaooong', '모의코인거래', '자유게시판', 'mypage'];
 
-  let nowPageState = 0;
-  const urlPath = window.location.pathname;
-  const comparePath = urlPath.split('/')
-  navBtnList.forEach((e, i) => {
-    if (comparePath[1] === e.toLowerCase()) nowPageState = i;
-  });
+  const [cookies, setCookie, removeCookie] = useCookies(['redirect']);
+
+  let initPage = 0;
+  let initSerial = null;
+  if (cookies.redirect) {
+    if (cookies.redirect.page === 'board') initPage = 2;
+    if (cookies.redirect.page === 'coin') initPage = 1;
+    if (cookies.redirect.serial) initSerial = cookies.redirect.serial;
+
+    removeCookie('redirect')
+
+  }
+
+
+
+  // let nowPageState = 0;
+  // const urlPath = window.location.pathname;
+  // const comparePath = urlPath.split('/')
+  // navBtnList.forEach((e, i) => {
+  //   if (comparePath[1] === e.toLowerCase()) nowPageState = i;
+  // });
 
   let [lgnFrmAct, setLgnFrmAct] = useState(false);
   let [regFrmAct, setRegFrmAct] = useState(false);
   let [bgDarkAct, setBgDarkAct] = useState(false);
   let [userData, setUserData] = useState(null);
 
-  const [page, setPage] = useState(0);
-  const [pageSerial, setPageSerial] = useState(null);
-  const [refreshPage, setRefreshPage] = useState(0);
-  // let [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(initPage);
+  const [componentPage, setComponentPage] = useState('home');
 
+  const [pageSerial, setPageSerial] = useState(initSerial);
+
+  // useEffect(() => {
+  //   console.log(cookies.redirect)
+  //   if (cookies.redirect) {
+  //     if (cookies.redirect.page === 'board') setPage(2);
+  //     if (cookies.redirect.page === 'coin') setPage(1);
+  //     // if (cookies.redirect.serial) initSerial = cookies.redirect.serial;
+
+  //     removeCookie('redirect')
+  //   }
+  // }, [])
 
   const stateFunctions = {
     setLgnFrmAct,
@@ -391,21 +437,25 @@ const App = () => {
     setUserData,
     setPage,
     setPageSerial,
-    setRefreshPage,
+    setComponentPage,
   };
 
   // 최초 랜더링 시 페이지 이동 및 로그인 정보 검증
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const urlParams = url.searchParams;
-    if (url.pathname === '/board') {
-      if (urlParams.get('serial')) setPageSerial(urlParams.get('serial'));
-      setPage(2);
-    }
+    // const url = new URL(window.location.href);
+    // const urlParams = url.searchParams;
+    // if (url.pathname === '/board') {
+    //   if (urlParams.get('serial')) setPageSerial(urlParams.get('serial'));
+    //   setPage(2);
+    // }
 
     const fetchData = async () => {
-      const result = await axios.get('/user/verify');
-      setUserData(result.data.result.id);
+      try {
+        const result = await axios.get('/user/verify');
+        setUserData(result.data.result.id);
+      } catch (err) {
+        console.log(err.response)
+      }
     }
     fetchData();
   }, []);
@@ -416,7 +466,7 @@ const App = () => {
       {/* <Loading active={loading} /> */}
 
       {/* background shadow animation */}
-      <BgDarker active={bgDarkAct} stateFuncs={stateFunctions}></BgDarker>
+      <BgDarker active={bgDarkAct} appSetStates={stateFunctions}></BgDarker>
       {/* /background shadow animation */}
 
       {/* All Section */}
@@ -429,13 +479,13 @@ const App = () => {
         <div className="middleSection">
 
           {/* <!-- 네비게이션바 --> */}
-          <Nav btnList={navBtnList} btnAct={page} stateFuncs={stateFunctions} userData={userData} />
+          <Nav btnList={navBtnList} btnAct={page} appSetStates={stateFunctions} userData={userData} />
 
           {/* <!-- /네비게이션바 --> */}
 
           {/* <!-- Content --> */}
 
-          <Content page={page} serial={pageSerial} refreshPage={refreshPage} stateFunctions={stateFunctions}></Content>
+          <Content page={page} serial={pageSerial} componentPage={componentPage} appSetStates={stateFunctions}></Content>
 
           {/* <!-- /Content --> */}
 
@@ -449,7 +499,7 @@ const App = () => {
       {/* /All Section */}
 
       {/* <!-- Login & Register Form --> */}
-      <LogInForm active={lgnFrmAct} stateFuncs={stateFunctions} />
+      <LogInForm active={lgnFrmAct} appSetStates={stateFunctions} />
       <RegisterForm active={regFrmAct} />
       {/* /Login & Register Form */}
 

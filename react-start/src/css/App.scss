@@ -654,14 +654,6 @@ ul {
 
 
 
-/* .button_group button {
-  display: block;
-  border: none;
-  box-sizing: border-box;
-  padding: 5px;
-  width: 250px;
-  height: 25px;
-} */
 
 
 
@@ -682,11 +674,6 @@ ul {
 
 
 
-// .app {
-//   display: flex;
-//   align-items: center;
-//   flex-direction: column;
-// }
 
 /* 마이페이지 */
 .mypage {
@@ -894,6 +881,7 @@ ul {
           padding: 5px;
           &:hover {
             cursor: pointer;
+            color: aquamarine;
           }
         }
       }

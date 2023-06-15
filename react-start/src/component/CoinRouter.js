@@ -3,6 +3,12 @@ import axios from 'axios';
 import { Loading2 } from './Loading';
 import ReactApexChart from "react-apexcharts";
 
+class CustomError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'CustomError';
+  }
+}
 
 // 메인페이지 컴포넌트
 const MainPage = (props) => {
@@ -80,9 +86,10 @@ const MainPage = (props) => {
 
     const Href = (props) => {
       const { page, children } = props
+
       return (
         <span onClick={() => {
-          setCoinPage([page]);
+          setCoinPage(page);
           setMarketName(children);
         }}>
           {children}
@@ -209,16 +216,16 @@ const MainPage = (props) => {
 const DetailPage = (props) => {
   // coin: 어떤 코인의 디테일을 표시할 것인가?
   // stateFuncs: 뒤로 돌아가기용
-  const [currentMarketCode] = props.coin;
+  const currentMarketCode = props.coin;
 
-  const { marketName, stateFuncs, refresh, stateFunctions } = props;
+  const { marketName, stateFuncs, refresh, appSetStates } = props;
   const { setCoinPage, setAutoRefresh } = stateFuncs;
-  const { setLgnFrmAct, setBgDarkAct } = stateFunctions;
+  const { setLgnFrmAct, setBgDarkAct } = appSetStates;
 
   const [series, setSeries] = useState(null);
   const [options, setOptions] = useState(null);
   const [ticker, setTicker] = useState(null);
-  const [coolTime, setCoolTime] = useState(true);
+  const [coolTime, setCoolTime] = useState(false);
 
   const [userCoinData, setUserCoinData] = useState({});
   const [userTradeHistory, setUserTradeHistory] = useState([]);
@@ -403,19 +410,18 @@ const DetailPage = (props) => {
     event.preventDefault();
     setInputs({ buyAmount: '', sellAmount: '' });
 
-
     try {
-      if (!coolTime) throw new Error('연속으로 요청할 수 없습니다.');
-      makeCoolTime(1500);
-  
+      if (coolTime) throw new CustomError('연속으로 요청할 수 없습니다.');
+      setCoolTime(true);
+
       let inputValue;
       if (tradeType === 'buy') {
         inputValue = Number(event.target.buyAmount.value);
       } else if (tradeType === 'sell') {
         inputValue = Number(event.target.sellAmount.value);
       }
-      
-      if (isNaN(inputValue)) throw new Error('숫자만 입력해주세요');
+
+      if (isNaN(inputValue)) throw new CustomError('숫자만 입력해주세요');
 
       const response = await axios.request({
         method: 'post',
@@ -427,21 +433,19 @@ const DetailPage = (props) => {
         },
       });
 
-      const { result, error } = response.data;
-
-      if (error) throw new Error(error);
-
-      if (result) {
-        getUserCoinData();
-        // setCoinPage([currentMarketCode]);
-      }
+      getUserCoinData();
     } catch (err) {
-      alert(err.message);
+      if (err instanceof CustomError) alert(err.message)
+      else {
+        alert(err.response.data.error);
 
-      if (err.message === '로그인 정보가 없습니다') {
-        setLgnFrmAct(true);
-        setBgDarkAct(true);
-      };
+        if (err.message === '로그인 정보가 없습니다') {
+          setLgnFrmAct(true);
+          setBgDarkAct(true);
+        };
+      }
+    } finally {
+      setCoolTime(false);
     }
   }
 
@@ -514,7 +518,7 @@ const DetailPage = (props) => {
                 refresh ? '자동 업데이트 일시정지' : '자동 업데이트 재시작'
               }
             </button>
-            <button onClick={() => { setCoinPage(['main']) }}>메인으로</button>
+            <button onClick={() => { setCoinPage('home') }}>메인으로</button>
           </div>
         </div>
       </div>
@@ -631,9 +635,10 @@ const DetailPage = (props) => {
 // 코인 페이지
 // coinPage 값에 따라 보여주는 페이지가 달라짐
 const Coin = (props) => {
-  const { stateFunctions } = props;
+  const { appSetStates, componentPage: coinPage } = props;
+  const { setComponentPage: setCoinPage } = appSetStates;
 
-  const [coinPage, setCoinPage] = useState(['main']);
+  // const [coinPage, setCoinPage] = useState('home');
   const [marketName, setMarketName] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -643,9 +648,9 @@ const Coin = (props) => {
     setAutoRefresh,
   };
 
-  if (coinPage[0] !== 'main') {
+  if (coinPage !== 'home') {
     return (
-      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} stateFunctions={stateFunctions} refresh={autoRefresh} />
+      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} appSetStates={appSetStates} refresh={autoRefresh} />
     );
   } else {
     return (

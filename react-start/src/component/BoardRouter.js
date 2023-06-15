@@ -7,12 +7,18 @@ import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 import { Loading2 } from './Loading';
 
+class CustomError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'CustomError';
+  }
+}
+
 // 게시판 새로운 글 포스팅 페이지
 const BoardPostCreate = (props) => {
   const { setBoardPage } = props.stateFuncs;
-  const { setLgnFrmAct, setBgDarkAct } = props.stateFunctions;
-  let title = '';
-  let postData = '';
+  const { setLgnFrmAct, setBgDarkAct } = props.appSetStates;
+  const [postContent, setPostContent] = useState('');
 
   //발행 함수
   const postBoard = async (event) => {
@@ -20,21 +26,21 @@ const BoardPostCreate = (props) => {
     try {
       const response = await axios.request({
         method: 'post',
-        url: '/board/post',
+        url: '/board',
         data: {
-          title: title,
-          content: postData,
+          title: event.target.title.value,
+          content: postContent,
         },
       });
 
-      const { result, error } = response.data;
-      if (error) throw new Error(error);
+      const { result } = response.data;
 
       if (result) setBoardPage('home');
 
     } catch (err) {
-      alert(err.message);
-      if (err.message === '로그인 정보가 없습니다') {
+      const errorMessage = err.response.data.error;
+      alert(errorMessage);
+      if (errorMessage === '로그인 정보가 없습니다') {
         setLgnFrmAct(true);
         setBgDarkAct(true);
       }
@@ -45,16 +51,14 @@ const BoardPostCreate = (props) => {
     <div className="content_box ani_fadeIn" id="board">
       <form onSubmit={postBoard}>
         <div className='board_post_title'>
-          <input type="text" placeholder='제목' onChange={(event) => {
-            title = event.target.value;
-          }} />
+          <input type="text" placeholder='제목' name='title' />
         </div>
 
         <div className='board_post_content'>
           <CKEditor
             editor={ClassicEditor}
             onChange={(event, editor) => {
-              postData = editor.getData();
+              setPostContent(editor.getData());
             }}
           />
         </div>
@@ -77,16 +81,14 @@ const BoardPostUpdate = (props) => {
   const putPost = async () => {
     try {
       const response = await axios.request({
-        method: 'put',
-        url: '/board/put/' + serial,
+        method: 'patch',
+        url: '/board/' + serial,
         data: {
           postSerial: serial,
           title: title,
           content: content,
         },
       });
-      const { error } = response.data;
-      if (error) throw new Error(error);
 
       setBoardPage('home')
 
@@ -122,7 +124,7 @@ const BoardPostUpdate = (props) => {
 
 // 게시판 글 읽는 페이지
 const BoardPostRead = (props) => {
-  const { serial, stateFunctions } = props;
+  const { serial } = props;
   const { setBoardPage, setPostNumber, setPostData } = props.stateFuncs
 
   /*
@@ -152,17 +154,17 @@ const BoardPostRead = (props) => {
     try {
       const response = await axios.delete('/board/' + serial);
       const { result, error } = response.data;
-      if (error) throw new Error(error);
+
       if (result) setBoardPage('home');
     } catch (err) {
-      alert(err);
+      alert(err.response.data.error);
     }
   };
 
   // 댓글 추가 요청 함수
   const addComment = async (reqContent, reply = 0) => {
     try {
-      if (!reqContent) throw new Error('댓글을 입력해주세요')
+      if (!reqContent) throw new CustomError('댓글을 입력해주세요')
       const response = await axios.request({
         method: 'post',
         url: '/comment',
@@ -172,8 +174,6 @@ const BoardPostRead = (props) => {
           reply: reply,
         },
       });
-
-      if (response.data.error) throw new Error(response.data.error);
 
       const { sqlData, userData } = response.data.result;
       const newCommentData = [...commentData];
@@ -192,7 +192,11 @@ const BoardPostRead = (props) => {
       setCommentData(newCommentData);
 
     } catch (err) {
-      alert(err.message);
+      if (err instanceof CustomError) {
+        alert(err.message)
+      } else {
+        alert(err.response.data.error);
+      }
     }
 
   };
@@ -209,11 +213,6 @@ const BoardPostRead = (props) => {
         }
       });
 
-      // 요청에 문제
-      const { result, error } = response.data;
-      if (!result) throw new Error('요청에 실패했습니다');
-      if (error) throw new Error(error);
-
       // 해당 댓글을 삭제처리할지 '삭제된 댓글입니다'로 표기할지 결정
       const { commentState } = response.data.result;
 
@@ -224,7 +223,8 @@ const BoardPostRead = (props) => {
         return e.comment_serial === reqSerial;
       })
 
-      if (commentState === 'delete') {  // 삭제요청한 댓글이 대댓글인 경우
+
+      if (newCommentData[index].reply) {
         // 형제 대댓글이 있는지 확인
         let isBrother = false;
         newCommentData.forEach(e => {
@@ -242,23 +242,62 @@ const BoardPostRead = (props) => {
           })
 
           // 부모 댓글이 '삭제된 댓글입니다' 일 경우 삭제
-          if(newCommentData[parentIndex].erase) newCommentData.splice(parentIndex, 1);
+          if (newCommentData[parentIndex].erase) newCommentData.splice(parentIndex, 1);
         }
 
         // 본인 삭제
         newCommentData.splice(index, 1);
-      } else if (commentState === 'erase') {  // 삭제요청한 댓글이 대댓글이 아닌 경우
-        // '삭제된 댓글입니다' 표시
-        newCommentData[index].erase = 1;
+      } else {
+        if (commentState === 'delete') newCommentData.splice(index, 1);
+        else if (commentState === 'erase') {  // 삭제요청한 댓글이 대댓글이 아닌 경우
+          // '삭제된 댓글입니다' 표시
+          newCommentData[index].erase = 1;
+        } else throw new CustomError('알 수 없는 에러입니다');
       }
-      else throw new Error('알 수 없는 에러입니다');
+
+      // if (commentState === 'delete' && !newCommentData[index].reply) {  // 삭제요청한 댓글이 대댓글인 경우
+      //   // 형제 대댓글이 있는지 확인
+      //   let isBrother = false;
+      //   newCommentData.forEach(e => {
+      //     if (e.reply === newCommentData[index].reply && e.comment_serial !== reqSerial) {
+      //       isBrother = true;
+      //       return
+      //     }
+      //   })
+
+      //   // 형제 대댓글이 없으면
+      //   if (!isBrother) {
+      //     // 부모 댓글 인덱스 검색
+      //     const parentIndex = newCommentData.findIndex((e) => {
+      //       return e.comment_serial === newCommentData[index].reply;
+      //     })
+
+      //     // 부모 댓글이 '삭제된 댓글입니다' 일 경우 삭제
+      //     if (newCommentData[parentIndex].erase) newCommentData.splice(parentIndex, 1);
+      //   }
+
+      //   // 본인 삭제
+      //   newCommentData.splice(index, 1);
+      // } else if (commentState === 'delete' && newCommentData[index].reply) {  // 삭제요청한 댓글이 대댓글이 아닌 경우
+      //   // 본인 삭제
+      //   newCommentData.splice(index, 1);
+      // } else if (commentState === 'erase') {  // 삭제요청한 댓글이 대댓글이 아닌 경우
+      //   // '삭제된 댓글입니다' 표시
+      //   newCommentData[index].erase = 1;
+      // }
+      // else throw new CustomError('알 수 없는 에러입니다');
 
       const newState = new Array(newCommentData.length).fill({ type: 'reply', active: false })
       setReplyActive(newState);
       setCommentData(newCommentData);
 
     } catch (err) {
-      alert(err)
+      if (err instanceof CustomError) {
+        alert(err.message)
+      } else {
+        console.log(err)
+        alert(err.response.data.error);
+      }
     }
 
   };
@@ -267,7 +306,7 @@ const BoardPostRead = (props) => {
   const patchComment = async (reqContent, reqSerial) => {
 
     try {
-      if (!reqContent) throw new Error('댓글을 입력해주세요')
+      if (!reqContent) throw new CustomError('댓글을 입력해주세요')
       const response = await axios.request({
         method: 'patch',
         url: 'comment',
@@ -278,7 +317,7 @@ const BoardPostRead = (props) => {
       });
 
       const { result, error } = response?.data;
-      if (!result || error) throw new Error('수정에 실패하였습니다.');
+      if (!result || error) throw new CustomError('수정에 실패하였습니다.');
 
       const newState = [...commentData];
       newState.forEach(e => {
@@ -292,7 +331,11 @@ const BoardPostRead = (props) => {
       setReplyActive(newState2);
       setCommentData(newState);
     } catch (err) {
-      alert(err)
+      if (err instanceof CustomError) {
+        alert(err.message)
+      } else {
+        alert(err.response.data.error);
+      }
     }
   };
 
@@ -303,8 +346,7 @@ const BoardPostRead = (props) => {
     const fetchData = async () => {
       try {
         const response = await axios.get('/board/' + serial);
-        const { result, error } = response.data;
-        if (!result) throw new Error(error);
+        const { result } = response.data;
 
         const { boardData, commentData, userData } = result;
 
@@ -318,7 +360,7 @@ const BoardPostRead = (props) => {
         setReplyActive(newState);
 
       } catch (err) {
-        alert(err)
+        alert(err.response.data.error)
       }
     };
     fetchData();
@@ -684,7 +726,7 @@ const BoardHome = (props) => {
     const fetchData = async () => {
       try {
         const response = await axios.get("/board/data");
-        if (!response.data.result) throw new Error('에러');
+
         const { sqlData, userData } = response.data.result;
         const { boardList, commentsList } = sqlData;
         setUserData(userData);
@@ -736,17 +778,14 @@ const BoardHome = (props) => {
 
 // 게시판 메인 컴포넌트
 const Board = (props) => {
-  const { stateFunctions, serial } = props
-  const { setPageSerial } = stateFunctions;
+  const { appSetStates, serial, componentPage: boardPage } = props;
+  const { setComponentPage: setBoardPage } = appSetStates
+
   let initPage = 'home';
-  if (serial) {
-    initPage = 'read';
-    setPageSerial(null)
-  }
+  if (serial) initPage = 'read';
 
 
-  const [boardPage, setBoardPage] = useState(initPage);
-  const [postNumber, setPostNumber] = useState(serial);
+  const [postNumber, setPostNumber] = useState(serial || null);
   const [postData, setPostData] = useState(null);
 
 
@@ -756,8 +795,8 @@ const Board = (props) => {
     setPostData,
   }
   if (boardPage === 'home') return <BoardHome stateFuncs={stateFuncs} />
-  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} stateFunctions={stateFunctions} />
-  if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} stateFunctions={stateFunctions} />
+  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={postNumber} stateFuncs={stateFuncs} appSetStates={appSetStates} />
+  if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} appSetStates={appSetStates} />
   if (boardPage === 'update') return <BoardPostUpdate postData={postData} serial={postNumber} stateFuncs={stateFuncs} />
   return <Loading2 />
 }

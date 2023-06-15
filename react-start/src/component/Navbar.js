@@ -3,8 +3,8 @@ import axios from 'axios';
 import '../css/navbar.css'
 
 const Nav = (props) => {
-  const { btnList, btnAct, stateFuncs, userData } = props;
-  const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage } = stateFuncs;
+  const { btnList, btnAct, appSetStates, userData } = props;
+  const { setLgnFrmAct, setBgDarkAct, setRegFrmAct, setUserData, setPage, setComponentPage } = appSetStates;
 
   //left section (로고, 이름)
   const BtnLeftSect = () => {
@@ -30,6 +30,7 @@ const Nav = (props) => {
       btnArray.push(
         <li key={i}>
           <button className={btnClass} onClick={() => {
+            setComponentPage('home');
             setPage(i);
           }}>
             {btnName}

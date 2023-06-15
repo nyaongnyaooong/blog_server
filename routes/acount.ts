@@ -14,8 +14,6 @@ class CustomError extends Error {
     this.name = 'CustomError';
   }
 }
-
-
 interface User extends RowDataPacket {
   user_serial: number,
   id: string,
@@ -23,13 +21,13 @@ interface User extends RowDataPacket {
   money: number,
   charge: number
 }
-
-
 interface HashPWResult {
   salt: string,
   key: string
 }
 type HashPW = (pw: string, salt?: string) => { result: HashPWResult | false, error: string | false };
+
+
 //패스워드 해시화 함수
 const hashPW: HashPW = (pw, salt = undefined) => {
   try {
@@ -63,7 +61,7 @@ const hashPW: HashPW = (pw, salt = undefined) => {
 }
 
 // 로그인 요청
-router.post('/login/post', async (req, res) => {
+router.post('/login', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
@@ -103,7 +101,7 @@ router.post('/login/post', async (req, res) => {
     //JWT 생성
     const token = createToken(payload);
     // 토큰생성 실패
-    if (!token) throw new CustomError('토큰 생성에 실패했습니다');
+    if (!token) throw new Error('토큰 생성에 실패했습니다');
 
     // cookie(name: string, val: string, options: CookieOptions): this;
     // cookie(name: string, val: any, options: CookieOptions): this;
@@ -121,15 +119,17 @@ router.post('/login/post', async (req, res) => {
     });
   } catch (err) {
     await mySQL.rollback();
-
+    
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
@@ -151,7 +151,7 @@ router.get('/logout', (req, res) => {
 
 
 //회원가입 요청
-router.post('/register/post', async (req, res) => {
+router.post('/register', async (req, res) => {
   const { regId: reqStrID, regPw: reqStrPW } = req.body;
 
   const mySQL = await mySQLPool.getConnection();
@@ -178,9 +178,9 @@ router.post('/register/post', async (req, res) => {
 
     const { key, salt } = result || { key: null, salt: null };
     // 해시화에 실패 했을 경우 - key salt 생성 실패
-    if (!key || !salt) throw new CustomError('해시화에 실패했습니다');
+    if (!key || !salt) throw new Error('해시화에 실패했습니다');
     // 해시화에 실패 했을 경우 - 기타 오류
-    if (error) throw new CustomError('해시화에 실패했습니다');
+    if (error) throw new Error('해시화에 실패했습니다');
 
     const [resSQL2] = await mySQL.query(`INSERT INTO user(id, salt, hash) 
     VALUES('${reqStrID}', '${salt}', '${key}')`);
@@ -196,15 +196,17 @@ router.post('/register/post', async (req, res) => {
     })
   } catch (err) {
     await mySQL.rollback();
-
+    
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
@@ -224,7 +226,7 @@ router.patch('/user/password', async (req, res) => {
 
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
     if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
@@ -243,22 +245,22 @@ router.patch('/user/password', async (req, res) => {
     // 로그인 요청한 PW 해시화
     const { result: hashResult, error: hashError } = hashPW(current, salt);
     // 해시화 실패
-    if (hashError) throw new CustomError(hashError);
-    if (!hashResult) throw new CustomError('해시화에 실패했습니다');
+    if (hashError) throw new Error(hashError);
+    if (!hashResult) throw new Error('해시화에 실패했습니다');
 
     const { key } = hashResult;
-    if (key != hash) throw new CustomError('해시화에 실패했습니다');
+    if (key != hash) throw new Error('해시화에 실패했습니다');
 
     // 새로운 PW Hash화
     const { result, error } = hashPW(change);
 
     const { key: newHash, salt: newSalt } = result || { key: null, salt: null };
     // 해시화에 실패 했을 경우 - key salt 생성 실패
-    if (!newHash || !newSalt) throw new CustomError('03');
+    if (!newHash || !newSalt) throw new Error('해시화에 실패했습니다');
     // 해시화에 실패 했을 경우 - 기타 오류
-    if (error) throw new CustomError('03');
+    if (error) throw new Error('해시화에 실패했습니다');
 
-    const [resSQL2] = await mySQL.query(
+    await mySQL.query(
       `UPDATE user
       SET salt = '${newSalt}', hash = '${newHash}'
       WHERE user_serial=${userSerial}`
@@ -279,15 +281,19 @@ router.patch('/user/password', async (req, res) => {
 
   } catch (err) {
     await mySQL.rollback();
-
+    
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if(err.message === '로그인 정보가 없습니다') statusCode = 401;
+      if(err.message === '존재하지 않는 유저 정보입니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
@@ -303,7 +309,7 @@ router.delete('/user', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
     if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
@@ -381,15 +387,18 @@ router.delete('/user', async (req, res) => {
     })
   } catch (err) {
     await mySQL.rollback();
-
+    
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if(err.message === '로그인 정보가 없습니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
@@ -462,7 +471,7 @@ router.get('/google/redirect', async (req, res) => {
     });
 
     // 사용자 정보를 불러오는데 실패
-    if (!res2.data.id) throw new CustomError('09');
+    if (!res2.data.id) throw new CustomError('구글에 정보 요청하는데에 있어 문제가 발생했습니다');
     const userID = 'google-' + res2.data.id;
 
     // 가입되어있는 id인지 검사
@@ -492,7 +501,7 @@ router.get('/google/redirect', async (req, res) => {
       );
 
       // DB에서 회원정보를 불러오는데 실패
-      if (!resSQL3[0].user_serial) throw new CustomError('06');
+      if (!resSQL3[0].user_serial) throw new CustomError('DB 에러');
 
       user_serial = resSQL3[0].user_serial;
     }
@@ -507,7 +516,7 @@ router.get('/google/redirect', async (req, res) => {
     // JWT 생성
     const jwtToken = createToken(payload);
     // JWT토큰생성 실패
-    if (!jwtToken) throw new CustomError('토큰 생성에 실패했습니다');
+    if (!jwtToken) throw new Error('토큰 생성에 실패했습니다');
 
     // 생성한 토큰을 쿠키로 만들어서 브라우저에게 전달
     res.cookie('accessToken', jwtToken, {
@@ -518,15 +527,18 @@ router.get('/google/redirect', async (req, res) => {
     res.redirect('https://' + req.hostname);
   } catch (err) {
     await mySQL.rollback();
-
+    
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if(err.message === '구글에 정보 요청하는데에 있어 문제가 발생했습니다') statusCode = 502;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });

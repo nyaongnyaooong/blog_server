@@ -164,14 +164,14 @@ app.use('/', require(path.join(__dirname, '/routes/board')));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/index.html'));
-})
+});
 
 // 유저 인증 정보
 app.get('/user/verify', (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
 
     res.send({
       result: {
@@ -189,7 +189,7 @@ app.get('/user/verify', (req, res) => {
       console.log(err);
     }
 
-    res.send({
+    res.status(401).send({
       result: false,
       error: errMessage
     });
@@ -203,7 +203,7 @@ app.get('/user/profile', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new CustomError('유저 검증에 문제가 있습니다');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
     if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
@@ -222,20 +222,61 @@ app.get('/user/profile', async (req, res) => {
       error: false,
     });
   } catch (err) {
+    await mySQL.rollback();
+
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if (err.message === '로그인 정보가 없습니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
   } finally {
     mySQL.release();
   }
+});
+
+app.get('/board', (req, res) => {
+  const { serial } = req.query;
+
+  const cookieObject = {
+    page: 'board',
+    serial
+  }
+  const expDate = new Date();
+  expDate.setMinutes(expDate.getMinutes() + 1)
+
+  res.cookie('redirect', cookieObject, {
+    path: '/',
+    expires: expDate
+  });
+
+  res.redirect('http://localhost:3000')
+});
+
+app.get('/coin', (req, res) => {
+  const { serial } = req.query;
+
+  const cookieObject = {
+    page: 'coin',
+    serial
+  }
+  const expDate = new Date();
+  expDate.setMinutes(expDate.getMinutes() + 1)
+
+  res.cookie('redirect', cookieObject, {
+    path: '/',
+    expires: expDate
+  });
+
+  res.redirect('http://localhost:3000')
 });
 
 
@@ -250,10 +291,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => { // 에�
   console.error(err.stack); // 에러 메시지 표시
   res.status(500).send('서버 에러!'); // 500 상태 표시 후 에러 메시지 전송
 });
-
-// app.listen(app.get('port'), () => {
-//   console.log(`server is running on ${app.get('port')}`);
-// });
 
 // Create an HTTPS service identical to the HTTP service.
 https.createServer(options, app).listen(app.get('httpsPort'), () => {

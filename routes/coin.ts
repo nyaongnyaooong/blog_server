@@ -88,9 +88,9 @@ router.get('/user/coin/all', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
+    if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
     await mySQL.beginTransaction();
 
@@ -109,14 +109,19 @@ router.get('/user/coin/all', async (req, res) => {
       error: false,
     });
   } catch (err) {
+    await mySQL.rollback();
+
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if (err.message === '로그인 정보가 없습니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
@@ -134,13 +139,13 @@ router.get('/user/coin', async (req, res) => {
   try {
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
+    if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
     const { market: reqMarket } = req.query;
     // 쿼리값이 없음
-    if (!reqMarket) throw new Error('01')
+    if (!reqMarket) throw new CustomError('잘못된 요청입니다')
 
     await mySQL.beginTransaction();
 
@@ -168,14 +173,19 @@ router.get('/user/coin', async (req, res) => {
       error: false,
     });
   } catch (err) {
+    await mySQL.rollback();
+
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if (err.message === '로그인 정보가 없습니다') statusCode = 200;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });
@@ -198,9 +208,9 @@ router.post('/user/coin/trade', async (req, res) => {
 
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
-    if (!req.user || !userID) throw new Error('02');
+    if (!req.user || !userID) throw new Error('유저 검증에 문제가 있습니다');
     // 로그인하지 않음
-    if (!userSerial || userID === 'anonymous') throw new Error('03');
+    if (!userSerial || userID === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
 
     let reqMarketTicker: Ticker | null = null;
     for (let i = 0; i < gTicker.length; i++) {
@@ -211,7 +221,7 @@ router.post('/user/coin/trade', async (req, res) => {
     }
 
     // 요청한 마켓과 일치하는 ticker 데이터를 찾을 수 없음
-    if (!reqMarketTicker) throw new Error('11')
+    if (!reqMarketTicker) throw new Error('ticker 데이터가 없음')
     // 요청한 마켓의 현재가
     const { trade_price: reqMarketPrice } = reqMarketTicker;
 
@@ -244,7 +254,7 @@ router.post('/user/coin/trade', async (req, res) => {
     const krwAsset: { market: string, price: number, amount: number } = { market: 'KRW', price: 1, amount: 0 };
     if (krwIndex > -1) krwAsset.amount = resSQL1[krwIndex].amount || 0;
 
-    
+
     if (reqType === 'buy') {  // 구매요청이면
       // 요청한 코인 수량 및 평단가 반영
       const totalReqPrice = reqMarketPrice * reqAmount
@@ -255,7 +265,7 @@ router.post('/user/coin/trade', async (req, res) => {
 
     } else if (req.body.request === 'sell') { // 판매요청이면
       // 보유수량보다 더 많은 수량을 판매 요청함
-      if (reqMarketAsset.amount < reqAmount) throw new Error('판매 요청한 코인 수량이 보유한 수량보다 많습니다');
+      if (reqMarketAsset.amount < reqAmount) throw new CustomError('판매 요청한 코인 수량이 보유한 수량보다 많습니다');
 
       // 요청한 코인 수량 및 평단가 반영
       const totalReqPrice = reqMarketPrice * reqAmount
@@ -269,11 +279,11 @@ router.post('/user/coin/trade', async (req, res) => {
 
     } else {
       // 요청타입에 문제가 있음 - buy/sell 중 하나가 아님
-      throw new Error('요청에 문제가 있습니다');
+      throw new Error('요청 타입에 문제가 있습니다');
     }
 
     // 보유 코인 및 원화 수정
-    const [resSQL2] = await mySQL.query(`
+    await mySQL.query(`
       INSERT INTO coin(user_serial, market, price, amount)
       VALUES
         (${userSerial}, '${reqMarketCode}', ${reqMarketAsset.price}, ${reqMarketAsset.amount}),
@@ -284,16 +294,16 @@ router.post('/user/coin/trade', async (req, res) => {
     );
 
     // DB 추가 실패
-    if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('06');
+    // if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new Error('');
 
     // 매매 히스토리 기록
     const tradeType = reqType === 'buy' ? true : false;
-    const [resSQL3] = await mySQL.query(`INSERT INTO trade(user_serial, market, trading, amount, price, date)
+    await mySQL.query(`INSERT INTO trade(user_serial, market, trading, amount, price, date)
       VALUES(${userSerial}, '${reqMarketCode}', ${tradeType}, ${reqAmount}, ${reqMarketPrice} , NOW())`
     );
 
     // DB 추가 실패
-    if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
+    // if (!('affectedRows' in resSQL3) || !resSQL3.affectedRows) throw new Error('06');
 
     const [resSQL4] = await mySQL.query<CoinSQLTable[]>(`SELECT *
       FROM coin
@@ -306,16 +316,20 @@ router.post('/user/coin/trade', async (req, res) => {
       result: resSQL4,
       error: false,
     });
-
   } catch (err) {
+    await mySQL.rollback();
+
     let errMessage = '알 수 없는 오류입니다';
+    let statusCode = 400;
     if (err instanceof CustomError) {
+      if (err.message === '로그인 정보가 없습니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
+      statusCode = 500;
     }
 
-    res.send({
+    res.status(statusCode).send({
       result: false,
       error: errMessage
     });

@@ -37,7 +37,7 @@ button {
 }
 
 .nav_btn_active {
-  cursor: default;
+  cursor: pointer;
   color: steelblue;
 }
 .nav_btn_deactive {
@@ -139,4 +139,4 @@ button {
   font-size: 15px;
 }
 
-/*# sourceMappingURL=Navbar.css.map */
+/*# sourceMappingURL=navbar.css.map */

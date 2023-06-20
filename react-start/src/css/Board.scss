@@ -34,15 +34,18 @@
   tbody {
     tr {
       cursor: pointer;
+      height: 27.4px;
 
       &:hover {
         color: steelblue;
       }
     }
+
+    
   }
 
   .board_title {
-    min-width: 450px;
+    min-width: 400px;
     padding-left: 4px;
     padding-top: 5px;
     padding-bottom: 5px;
@@ -236,6 +239,10 @@
   flex: 3;
   padding: 5px;
   font-size: 12px;
+  user-select: all;
+  &:hover {
+    color: steelblue;
+  }
   /* color: black; */
   /* background-color: #7a8695; */
 }

@@ -99,6 +99,7 @@ const LogInForm = (props) => {
       setLgnFrmAct(false);
       setBgDarkAct(false);
       setUserData(response.data.result);
+      window.location.href = '/';
 
     } catch (err) {
       if (err instanceof CustomError) {

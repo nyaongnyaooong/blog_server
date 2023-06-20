@@ -1,0 +1,42 @@
+#notfound .serverError {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  -webkit-transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+.serverError .serverError-500 {
+  position: relative;
+  width: 100%;
+  padding: 30px;
+}
+
+.serverError .serverError-500 img{
+  width: 100%;
+}
+
+.serverError a {
+  font-family: 'Kanit', sans-serif;
+  color: steelblue;
+  font-weight: 200;
+  text-decoration: none;
+  border-bottom: 1px dashed steelblue;
+  border-radius: 2px;
+}
+
+@media only screen and (max-width: 480px) {
+  .notfound .notfound-404 {
+    position: relative;
+    height: 168px;
+  }
+
+  .notfound .notfound-404 h1 {
+    font-size: 142px;
+  }
+
+  .notfound h2 {
+    font-size: 22px;
+  }
+}

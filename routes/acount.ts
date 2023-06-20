@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { mySQLPool, UserSQLTable } from '../modules/database'
 import { RowDataPacket } from 'mysql2/promise';
-import { createToken, Payload } from '../modules/jwt';
+import { createToken, hashing, Payload } from '../modules/jwt';
 import axios from 'axios';
 
 
@@ -91,11 +91,15 @@ router.post('/login', async (req, res) => {
     const { key } = hashResult;
     if (key != hash) throw new CustomError('비밀번호가 틀렸습니다');
 
+    const agentSalt = crypto.randomBytes(64).toString('hex')
+
     // payload
     const payload: Payload = {
       serial: user_serial,
       userid: id,
-      exp: '추가예정'
+      adress: hashing(req.ip),
+      agent: hashing(req.header('User-Agent') || '', agentSalt),
+      salt: agentSalt
     };
 
     //JWT 생성
@@ -103,13 +107,17 @@ router.post('/login', async (req, res) => {
     // 토큰생성 실패
     if (!token) throw new Error('토큰 생성에 실패했습니다');
 
-    // cookie(name: string, val: string, options: CookieOptions): this;
-    // cookie(name: string, val: any, options: CookieOptions): this;
-    // cookie(name: string, val: any): this;
+
+    const expDate = new Date();
+    expDate.setHours(expDate.getHours() + 1)
+
     // 생성한 토큰을 쿠키로 만들어서 브라우저에게 전달
     res.cookie('accessToken', token, {
       path: '/',
-      httpOnly: true
+      httpOnly: true,
+      maxAge: 3600000,
+      secure: true,
+      sameSite: 'strict',
     });
 
     // 로그인 성공했음을 response
@@ -217,6 +225,7 @@ router.post('/register', async (req, res) => {
 });
 
 
+// 패스워드 변경
 router.patch('/user/password', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
@@ -274,7 +283,7 @@ router.patch('/user/password', async (req, res) => {
       maxAge: 0
     });
 
-    res.send({
+    res.status(201).send({
       result: true,
       error: false
     })
@@ -303,6 +312,7 @@ router.patch('/user/password', async (req, res) => {
   }
 })
 
+// 탈퇴
 router.delete('/user', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
@@ -413,7 +423,6 @@ router.delete('/user', async (req, res) => {
 router.get('/login/google', (req, res) => {
   const { GOOGLE_CLIENT_ID } = process.env;
   const GOOGLE_REDIRECT_URI = 'https://' + req.hostname + '/google/redirect';
-  console.log(GOOGLE_REDIRECT_URI)
   const GOOGLE_OAUTH_URI: string = 'https://accounts.google.com/o/oauth2/v2/auth';
   const queryClientID = '?client_id=' + GOOGLE_CLIENT_ID;
   const queryRedirectURI = '&redirect_uri=' + GOOGLE_REDIRECT_URI;
@@ -506,25 +515,35 @@ router.get('/google/redirect', async (req, res) => {
       user_serial = resSQL3[0].user_serial;
     }
     await mySQL.commit();
+    const agentSalt = crypto.randomBytes(64).toString('hex');
 
     const payload = {
       serial: user_serial,
       userid: userID,
-      exp: '추가예정'
+      adress: hashing(req.ip),
+      agent: hashing(req.header('User-Agent') || '', agentSalt),
+      salt: agentSalt
     };
 
     // JWT 생성
     const jwtToken = createToken(payload);
+
     // JWT토큰생성 실패
     if (!jwtToken) throw new Error('토큰 생성에 실패했습니다');
+
+    const expDate = new Date();
+    expDate.setHours(expDate.getHours() + 1)
 
     // 생성한 토큰을 쿠키로 만들어서 브라우저에게 전달
     res.cookie('accessToken', jwtToken, {
       path: '/',
-      httpOnly: true
+      httpOnly: true,
+      maxAge: 3600000,
+      secure: true,
+      sameSite: 'strict',
     });
 
-    res.redirect('https://' + req.hostname);
+    res.redirect('/');
   } catch (err) {
     await mySQL.rollback();
     

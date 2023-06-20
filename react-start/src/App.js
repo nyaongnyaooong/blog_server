@@ -13,6 +13,13 @@ import { Coin } from './component/CoinRouter'
 import { Home } from './component/Home'
 import axios from 'axios';
 
+class CustomError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'CustomError';
+  }
+}
+
 // 백그라운드 어둡게
 const BgDarker = (props) => {
   const { active, appSetStates } = props;
@@ -37,6 +44,7 @@ const BgDarker = (props) => {
 
 // 마이페이지
 const MyPage = (props) => {
+  const { setServerDown } = props.appSetStates;
   const navList = ['userInfo', 'coinInfo'];
 
   const [profilePage, setProfilePage] = useState(0);
@@ -63,8 +71,8 @@ const MyPage = (props) => {
     // 패스워드 변경 실행 함수
     const changePassword = async (current, change, check) => {
       try {
-        if (/google-\d+/.test(profileData.id)) throw new Error('구글 계정은 변경할 수 없습니다');
-        if (change !== check) throw new Error('변경하려는 비밀번호와 재확인 비밀번호가 일치하지 않습니다');
+        if (/google-\d+/.test(profileData.id)) throw new CustomError('구글 계정은 변경할 수 없습니다');
+        if (change !== check) throw new CustomError('변경하려는 비밀번호와 재확인 비밀번호가 일치하지 않습니다');
 
         const response = await axios.request({
           method: 'patch',
@@ -80,8 +88,16 @@ const MyPage = (props) => {
           window.location.href = window.location.origin;
         }
 
-      } catch (error) {
-        alert(error.message);
+      } catch (err) {
+        if (err instanceof CustomError) alert(err.message)
+        else {
+          if (err.message === 'Request failed with status code 500') setServerDown(true)
+          else {
+            const errorMessage = err.response.data.error;
+            alert(errorMessage)
+            window.location.href = '/'
+          }
+        }
       }
     }
 
@@ -90,13 +106,16 @@ const MyPage = (props) => {
       try {
         const response = await axios.delete('/user');
 
-        if (response.data.error) throw new Error(response.data.error);
-        if (response.data.result) {
-          alert('탈퇴되었습니다');
-          window.location.href = window.location.origin;
-        }
+        alert('탈퇴되었습니다');
+        window.location.href = window.location.origin;
+
       } catch (err) {
-        alert(err);
+        if (err instanceof CustomError) alert(err.message)
+        else {
+          const errorMessage = err.response.data.error;
+          alert(errorMessage)
+          window.location.href = '/'
+        }
       }
     }
 
@@ -171,7 +190,15 @@ const MyPage = (props) => {
           const { data } = response.data.result;
           setAsset(data);
         } catch (err) {
-          alert(err);
+          if (err instanceof CustomError) alert(err.message)
+          else {
+            if (err.message === 'Request failed with status code 500') setServerDown(true)
+            else {
+              const errorMessage = err.response.data.error;
+              alert(errorMessage)
+              window.location.href = '/'
+            }
+          }
         }
       }
 
@@ -189,7 +216,15 @@ const MyPage = (props) => {
           setTicker(resTicker);
 
         } catch (err) {
-          alert(err);
+          if (err instanceof CustomError) alert(err.message)
+          else {
+            if (err.message === 'Request failed with status code 500') setServerDown(true)
+            else {
+              const errorMessage = err.response.data.error;
+              alert(errorMessage)
+              window.location.href = '/'
+            }
+          }
         }
       }
 
@@ -375,11 +410,11 @@ const MyPage = (props) => {
 }
 
 const Content = (props) => {
-  const { page, serial, componentPage, appSetStates } = props;
+  const { page, componentSerial, componentPage, appSetStates } = props;
 
-  if (page === 1) return <Coin appSetStates={appSetStates} serial={serial} componentPage={componentPage} />
-  if (page === 2) return <Board appSetStates={appSetStates} serial={serial} componentPage={componentPage} />
-  if (page === 3) return <MyPage />
+  if (page === 1) return <Coin appSetStates={appSetStates} componentSerial={componentSerial} componentPage={componentPage} />
+  if (page === 2) return <Board appSetStates={appSetStates} componentSerial={componentSerial} componentPage={componentPage} />
+  if (page === 3) return <MyPage appSetStates={appSetStates} />
 
   return <Home />
 };
@@ -387,14 +422,23 @@ const Content = (props) => {
 const App = () => {
   const navBtnList = ['NyaongNyaooong', '모의코인거래', '자유게시판', 'mypage'];
 
-  const [cookies, setCookie, removeCookie] = useCookies(['redirect']);
+  const [cookies, _, removeCookie] = useCookies(['redirect']);
 
   let initPage = 0;
+  let initComponentPage = 'home';
   let initSerial = null;
   if (cookies.redirect) {
-    if (cookies.redirect.page === 'board') initPage = 2;
-    if (cookies.redirect.page === 'coin') initPage = 1;
-    if (cookies.redirect.serial) initSerial = cookies.redirect.serial;
+
+    if (cookies.redirect.page === 'coin') {
+      initPage = 1;
+      initComponentPage = cookies.redirect.market || initComponentPage;
+      initSerial = cookies.redirect.marketName || initComponentPage;
+    }
+    if (cookies.redirect.page === 'board') {
+      initPage = 2;
+      initComponentPage = cookies.redirect.serial ? 'read' : 'home';
+      initSerial = cookies.redirect.serial || null;
+    }
 
     removeCookie('redirect')
 
@@ -409,26 +453,16 @@ const App = () => {
   //   if (comparePath[1] === e.toLowerCase()) nowPageState = i;
   // });
 
-  let [lgnFrmAct, setLgnFrmAct] = useState(false);
-  let [regFrmAct, setRegFrmAct] = useState(false);
-  let [bgDarkAct, setBgDarkAct] = useState(false);
-  let [userData, setUserData] = useState(null);
+  const [lgnFrmAct, setLgnFrmAct] = useState(false);
+  const [regFrmAct, setRegFrmAct] = useState(false);
+  const [bgDarkAct, setBgDarkAct] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [serverDown, setServerDown] = useState(false);
 
   const [page, setPage] = useState(initPage);
-  const [componentPage, setComponentPage] = useState('home');
+  const [componentPage, setComponentPage] = useState(initComponentPage);
 
-  const [pageSerial, setPageSerial] = useState(initSerial);
-
-  // useEffect(() => {
-  //   console.log(cookies.redirect)
-  //   if (cookies.redirect) {
-  //     if (cookies.redirect.page === 'board') setPage(2);
-  //     if (cookies.redirect.page === 'coin') setPage(1);
-  //     // if (cookies.redirect.serial) initSerial = cookies.redirect.serial;
-
-  //     removeCookie('redirect')
-  //   }
-  // }, [])
+  const [componentSerial, setComponentSerial] = useState(initSerial);
 
   const stateFunctions = {
     setLgnFrmAct,
@@ -436,8 +470,8 @@ const App = () => {
     setBgDarkAct,
     setUserData,
     setPage,
-    setPageSerial,
     setComponentPage,
+    setComponentSerial,
   };
 
   // 최초 랜더링 시 페이지 이동 및 로그인 정보 검증
@@ -451,65 +485,92 @@ const App = () => {
 
     const fetchData = async () => {
       try {
-        const result = await axios.get('/user/verify');
-        setUserData(result.data.result.id);
+        const response = await axios.get('/user/verify');
+
+        setUserData(response.data.result.id);
       } catch (err) {
-        console.log(err.response)
+        if (err instanceof CustomError) alert(err.message)
+        else {
+          if (err.message === 'Request failed with status code 500') setServerDown(true)
+          else {
+            const errorMessage = err.response.data.error;
+            alert(errorMessage)
+            window.location.href = '/'
+          }
+        }
       }
     }
     fetchData();
   }, []);
 
 
-  return userData ? (
-    <div className='app'>
-      {/* <Loading active={loading} /> */}
-
-      {/* background shadow animation */}
-      <BgDarker active={bgDarkAct} appSetStates={stateFunctions}></BgDarker>
-      {/* /background shadow animation */}
-
-      {/* All Section */}
-      <div className="container">
-        {/* <!-- Left Section --> */}
-        <div className="leftSection"></div>
-        {/* <!-- /Left Section --> */}
-
-        {/* <!-- Middle Section --> */}
-        <div className="middleSection">
-
-          {/* <!-- 네비게이션바 --> */}
-          <Nav btnList={navBtnList} btnAct={page} appSetStates={stateFunctions} userData={userData} />
-
-          {/* <!-- /네비게이션바 --> */}
-
-          {/* <!-- Content --> */}
-
-          <Content page={page} serial={pageSerial} componentPage={componentPage} appSetStates={stateFunctions}></Content>
-
-          {/* <!-- /Content --> */}
-
+  return serverDown ?
+    (
+      <div className='app_500'>
+        <div className="img">
+          <img src="500.png" />
         </div>
-        {/* <!-- /Middle Section --> */}
 
-        {/* <!-- Right Section --> */}
-        <div className="rightSection"></div>
-        {/* <!-- /Right Section --> */}
-      </div>
-      {/* /All Section */}
-
-      {/* <!-- Login & Register Form --> */}
-      <LogInForm active={lgnFrmAct} appSetStates={stateFunctions} />
-      <RegisterForm active={regFrmAct} />
-      {/* /Login & Register Form */}
-
-      <div className="footer">
+        <div className='text'>
+          <h2>Sorry! Something went wrong</h2>
+          <p>
+            서버 점검중입니다 나중에 다시 시도해주세요<br /><br />
+            <a href="/">Refresh</a>
+          </p>
+        </div>
 
       </div>
-    </div>
-  ) : (
-    <Loading2 />
-  );
+    ) :
+    (
+      userData ? (
+        <div className='app'>
+          {/* <Loading active={loading} /> */}
+
+          {/* background shadow animation */}
+          <BgDarker active={bgDarkAct} appSetStates={stateFunctions}></BgDarker>
+          {/* /background shadow animation */}
+
+          {/* All Section */}
+          <div className="container">
+            {/* <!-- Left Section --> */}
+            <div className="leftSection"></div>
+            {/* <!-- /Left Section --> */}
+
+            {/* <!-- Middle Section --> */}
+            <div className="middleSection">
+
+              {/* <!-- 네비게이션바 --> */}
+              <Nav btnList={navBtnList} btnAct={page} appSetStates={stateFunctions} userData={userData} />
+
+              {/* <!-- /네비게이션바 --> */}
+
+              {/* <!-- Content --> */}
+
+              <Content page={page} componentSerial={componentSerial} componentPage={componentPage} appSetStates={stateFunctions}></Content>
+
+              {/* <!-- /Content --> */}
+
+            </div>
+            {/* <!-- /Middle Section --> */}
+
+            {/* <!-- Right Section --> */}
+            <div className="rightSection"></div>
+            {/* <!-- /Right Section --> */}
+          </div>
+          {/* /All Section */}
+
+          {/* <!-- Login & Register Form --> */}
+          <LogInForm active={lgnFrmAct} appSetStates={stateFunctions} />
+          <RegisterForm active={regFrmAct} />
+          {/* /Login & Register Form */}
+
+          <div className="footer">
+
+          </div>
+        </div>
+      ) : (
+        <Loading2 />
+      ));
 }
 
 export default App;

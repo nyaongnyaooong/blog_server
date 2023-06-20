@@ -14,38 +14,60 @@ class CustomError extends Error {
 const MainPage = (props) => {
   const { stateFuncs } = props;
   const { setCoinPage, setMarketName } = stateFuncs;
+
   const [ticker, setTicker] = useState(null);
   const [sortType, setSortType] = useState(null);
 
   // 코인데이터 주기적으로 받아옴
   useEffect(() => {
-    // 코인 ticker 요청 함수
+    let interval;
     const fetchData = async () => {
       try {
-        const option = {
+        const resMarket = await axios.request({
           method: 'get',
-          url: '/coin/data'
-        }
-        const response = await axios.request(option);
-        const { ticker, market } = response.data;
+          url: "https://api.upbit.com/v1/market/all?isDetails=false",
+          headers: {
+            accept: "application/json"
+          }
+        });
 
-        ticker.forEach((e, i) => {
-          e.korean_name = market[i].korean_name;
-        })
+        const krwMarket = [];
+        let krwMrkStr = '';
+        resMarket.data.forEach(e => {
+          if (e.market.includes('KRW')) {
+            krwMrkStr += krwMrkStr ? ', ' + e.market : e.market;
+            krwMarket.push(e);
+          }
+        });
 
-        setTicker(ticker);
-      } catch (error) {
+        interval = setInterval(async () => {
+          try {
+            const response = await axios.request({
+              method: 'get',
+              url: "https://api.upbit.com/v1/ticker?markets=" + krwMrkStr,
+              headers: {
+                accept: "application/json"
+              }
+            });
+            const resTicker = response.data;
 
+            resTicker.forEach((e, i) => {
+              e.korean_name = krwMarket[i].korean_name;
+            })
+            setTicker(resTicker)
+          } catch (err) {
+
+          }
+        }, 1000)
+
+      } catch (err) {
+        return false;
       }
-    };
-
-    // 초당 1회 정보 요청
-    const timer = setInterval(() => {
-      fetchData();
-    }, 1000)
+    }
+    fetchData();
 
     return () => {
-      clearInterval(timer);
+      clearInterval(interval);
     };
   }, [])
 
@@ -84,18 +106,18 @@ const MainPage = (props) => {
   const CoinTableBody = (props) => {
     const { data } = props;
 
-    const Href = (props) => {
-      const { page, children } = props
+    // const Href = (props) => {
+    //   const { page, children } = props
 
-      return (
-        <span onClick={() => {
-          setCoinPage(page);
-          setMarketName(children);
-        }}>
-          {children}
-        </span>
-      )
-    }
+    //   return (
+    //     <span onClick={() => {
+    //       setCoinPage(page);
+    //       setMarketName(children);
+    //     }}>
+    //       {children}
+    //     </span>
+    //   )
+    // }
 
     if (sortType === 'marketUp') {
       data.sort((a, b) => {
@@ -164,13 +186,16 @@ const MainPage = (props) => {
       else classColor = 'colorWhite';
 
       array.push(
-        <tr key={idx}>
+        <tr key={idx} onClick={() => {
+          setCoinPage(elm.market);
+          setMarketName(elm.korean_name);
+        }}>
           {/* 순번 */}
           <td className='alignCenter'>{idx + 1}</td>
           {/* 종목 */}
-          <td className='alignCenter'><Href page={elm.market}>{elm.korean_name}</Href></td>
+          <td className='alignCenter'><span>{elm.korean_name}</span></td>
           {/* 기호 */}
-          <td className='alignCenter'><Href page={elm.market}>{elm.market}</Href></td>
+          <td className='alignCenter'><span>{elm.market}</span></td>
           {/* 현재가 */}
           <td className='alignCenter'>{elm.trade_price.toLocaleString('ko-KR')}</td>
           {/* 전일대비 */}
@@ -220,7 +245,7 @@ const DetailPage = (props) => {
 
   const { marketName, stateFuncs, refresh, appSetStates } = props;
   const { setCoinPage, setAutoRefresh } = stateFuncs;
-  const { setLgnFrmAct, setBgDarkAct } = appSetStates;
+  const { setLgnFrmAct, setBgDarkAct, setServerDown } = appSetStates;
 
   const [series, setSeries] = useState(null);
   const [options, setOptions] = useState(null);
@@ -234,13 +259,6 @@ const DetailPage = (props) => {
     buyAmount: '',
     sellAmount: '',
   });
-
-  const makeCoolTime = (time) => {
-    setCoolTime(false);
-    setTimeout(() => {
-      setCoolTime(true);
-    }, time)
-  }
 
   // 현재 코인 페이지 타이틀
   const Title = (props) => {
@@ -384,8 +402,16 @@ const DetailPage = (props) => {
           }
         }
         setOptions(options);
-      } catch (error) {
-        console.log(error);
+      } catch (err) {
+        if (err instanceof CustomError) alert(err.message)
+        else {
+          if (err.message === 'Request failed with status code 500') setServerDown(true)
+          else {
+            const errorMessage = err.response.data.error;
+            alert(errorMessage)
+            window.location.href = '/'
+          }
+        }
       }
     }
 
@@ -437,12 +463,16 @@ const DetailPage = (props) => {
     } catch (err) {
       if (err instanceof CustomError) alert(err.message)
       else {
-        alert(err.response.data.error);
-
-        if (err.message === '로그인 정보가 없습니다') {
-          setLgnFrmAct(true);
-          setBgDarkAct(true);
-        };
+        if (err.message === 'Request failed with status code 500') setServerDown(true)
+        else {
+          const errorMessage = err.response.data.error;
+          alert(errorMessage);
+  
+          if (errorMessage === '로그인 정보가 없습니다') {
+            setLgnFrmAct(true);
+            setBgDarkAct(true);
+          } else window.location.href = '/';
+        }
       }
     } finally {
       setCoolTime(false);
@@ -635,11 +665,11 @@ const DetailPage = (props) => {
 // 코인 페이지
 // coinPage 값에 따라 보여주는 페이지가 달라짐
 const Coin = (props) => {
-  const { appSetStates, componentPage: coinPage } = props;
-  const { setComponentPage: setCoinPage } = appSetStates;
+  const { appSetStates, componentSerial: marketName, componentPage: coinPage } = props;
+  const { setComponentSerial: setMarketName, setComponentPage: setCoinPage } = appSetStates;
 
   // const [coinPage, setCoinPage] = useState('home');
-  const [marketName, setMarketName] = useState(null);
+  // const [marketName, setMarketName] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const stateFuncs = {
@@ -649,6 +679,8 @@ const Coin = (props) => {
   };
 
   if (coinPage !== 'home') {
+
+
     return (
       <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} appSetStates={appSetStates} refresh={autoRefresh} />
     );
@@ -660,3 +692,4 @@ const Coin = (props) => {
 };
 
 export { Coin };
+

@@ -116,6 +116,34 @@ ul {
   min-height: 100px;
 }
 
+.app_500 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(253, 253, 254);
+  height: 100vh;
+}
+.app_500 .img img {
+  width: 600px;
+}
+.app_500 .text {
+  color: rgb(41, 41, 41);
+  text-align: center;
+  margin-bottom: 50px;
+}
+.app_500 .text h2 {
+  padding: 15px;
+}
+.app_500 .text a {
+  padding: 3px;
+  font-weight: 900;
+  color: dodgerblue;
+}
+.app_500 .text a:hover {
+  color: steelblue;
+}
+
 .bg-dark {
   background-color: rgb(41, 41, 41);
 }
@@ -333,11 +361,11 @@ ul {
 
 .content-home .content {
   margin: 20px;
-  margin-top: 80px;
+  margin-top: 60px;
   border: 1px solid steelblue;
   border-radius: 5px;
   background-color: #7a8695;
-  padding: 10px;
+  padding: 50px;
   text-align: center;
 }
 .content-home .content .content-git {

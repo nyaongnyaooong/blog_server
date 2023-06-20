@@ -156,7 +156,7 @@ router.patch("/board/:serial", async (req, res) => {
 
     if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new CustomError('DB 업데이트에 실패했습니다');
 
-    res.send({
+    res.status(201).send({
       result: true,
       error: false
     });
@@ -169,7 +169,7 @@ router.patch("/board/:serial", async (req, res) => {
       console.log(err);
     }
 
-    res.send({
+    res.status(201).send({
       result: false,
       error: errMessage
     });
@@ -445,7 +445,7 @@ router.patch('/comment', async (req, res) => {
     // DB 업데이트 실패
     // if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new CustomError('DB 업데이트에 실패했습니다');
 
-    res.send({
+    res.status(201).send({
       result: {
         sqlData: true,
         userData: req.user

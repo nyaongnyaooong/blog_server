@@ -29,8 +29,11 @@ class CustomError extends Error {
 
 // KRW 전체 마켓 정보
 const gMarket: Market[] = [];
+// KRW 전체 마켓 이름 정보
+const gMarketName: { [key: string]: string } = {};
 // 전체 마켓에 대한 Ticker
 let gTicker: Ticker[] = [];
+
 
 // 코인 ticker 데이터 request 함수
 const getTicker: () => void = async () => {
@@ -48,6 +51,7 @@ const getTicker: () => void = async () => {
     let krwMrkStr: string = '';
     res1.data.forEach(elm => {
       if (elm.market.includes('KRW')) {
+        gMarketName[elm.market] = elm.korean_name;
         gMarket.push(elm)
         krwMrkStr += krwMrkStr ? ', ' + elm.market : elm.market;
       }
@@ -70,6 +74,10 @@ const getTicker: () => void = async () => {
 }
 getTicker();
 
+router.use((req, res, next) => {
+  if (gMarketName) req.marketName = gMarketName;
+  next();
+});
 
 
 // 코인 마켓 데이터 및 티커 데이터 api

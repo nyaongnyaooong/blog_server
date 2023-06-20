@@ -5,8 +5,9 @@ declare global {
     interface Request {
       user: {
         serial?: number,
-        id?: string
+        id?: string,
       }
+      marketName: { [key: string]: string }
     }
   }
 }
@@ -48,7 +49,9 @@ export interface Ticker {
 }
 
 export interface Payload {
-  serial?: number,
-  userid?: string,
-  exp?: string
+  serial: number,
+  userid: string,
+  adress: string,
+  agent: string,
+  salt: string,
 }

@@ -129,6 +129,37 @@ ul {
 
 }
 
+.app_500 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgb(253, 253, 254);
+  height: 100vh;
+  .img {
+    // max-width: 600px;
+    img {
+      width: 600px;
+    }
+  }
+
+  .text {
+    color:rgb(41, 41, 41);
+    text-align: center;
+    margin-bottom: 50px;
+    h2 {
+      padding: 15px;
+    }
+    a {
+      padding: 3px;
+      font-weight: 900;
+      color: dodgerblue;
+      &:hover {
+        color: steelblue;
+      }
+    }
+  }
+}
 
 .bg-dark {
   background-color: rgb(41, 41, 41);
@@ -402,11 +433,12 @@ ul {
 .content-home {
   .content {
     margin: 20px;
-    margin-top: 80px;
+    margin-top: 60px;
     border: 1px solid steelblue;
     border-radius: 5px;
     background-color: #7a8695;
-    padding: 10px;
+    padding: 50px;
+
     text-align: center;
 
     .content-git {
@@ -879,6 +911,7 @@ ul {
 
         th {
           padding: 5px;
+
           &:hover {
             cursor: pointer;
             color: aquamarine;

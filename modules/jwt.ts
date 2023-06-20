@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { Market, Ticker, Payload } from '../index.d';
 
 //JWT 인코딩 함수
 /**
@@ -26,16 +27,12 @@ const encode: (text: object) => string = (text) => {
  * iat : Issued At. 토큰이 발급된 시각을 나타낸다. Numeric Date 형식으로 나타낸다. 이 값으로 토큰이 발급된지 얼마나 오래됐는지 확인할 수 있다.
  * jti : JWT ID. JWT 의 식별자를 나타낸다.
  */
-interface Payload {
-  serial: number,
-  userid: string,
-  exp?: string
-}
+
 const createToken: (payload: Payload) => string | false = (payload) => {
   //header
   const header = {
     typ: 'JWT',
-    alg: 'HS512'
+    alg: 'HS512',
   };
 
   // 헤더와 페이로드 인코딩
@@ -73,8 +70,24 @@ const createSignature: (encHeader: string, encPayload: string) => string | false
   return false
 };
 
+const hashing: (plainText: string, inputSalt?: string) => string = (plainText, inputSalt = '') => {
+  // 해쉬 반복 횟수
+  const repeat = Number(process.env.HASH_REPEAT_NUM);
+  // 해쉬 알고리즘
+  const algorithm = process.env.HASH_ALGORITHM;
+  // 솔트
+  const salt = inputSalt || process.env.SALT;
+
+  if (salt && algorithm) return crypto.pbkdf2Sync(plainText, salt, repeat, 64, algorithm)
+    .toString('base64')
+    .replace(/=/g, '');
+  else return '';
+}
+
 export {
   createToken,
   createSignature,
-  Payload
+  hashing,
+  Payload,
+
 }

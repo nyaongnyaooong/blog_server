@@ -10,7 +10,7 @@ import https from 'https';
 import path from 'path';
 import fs from 'fs';
 
-import { createToken, createSignature } from './modules/jwt';
+import { createToken, createSignature, hashing } from './modules/jwt';
 
 /*
   Types
@@ -21,7 +21,6 @@ import { ResultSetHeader } from 'mysql2';
 
 // Express
 const app = express();
-
 
 // dotenv
 dotenv.config();
@@ -62,7 +61,7 @@ const jwtExam: (token: string) => Payload | false = (token) => {
 
   //payload를 디코딩하여 req.user에 넣음
   //JSON => 자바스크립트 객체화
-  const payload: object = JSON.parse(Buffer.from(encPayload, 'base64').toString('utf-8'));
+  const payload: Payload = JSON.parse(Buffer.from(encPayload, 'base64').toString('utf-8'));
 
   return payload;
 }
@@ -82,7 +81,6 @@ class CustomError extends Error {
 
 
 
-
 /*
   미들웨어
 */
@@ -93,6 +91,8 @@ app.use((req, res, next) => {
   else res.redirect("https://" + req.headers.host + req.url);
 });
 
+//static file
+app.use(express.static('public'));
 //body-parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -102,9 +102,9 @@ app.use(methodOverride('_method'));
 app.use(cors());
 //cookie-parser
 app.use(cookieParser(process.env.COOKIE_SECRET));
+//morgan
+app.use(morgan('dev'));
 
-//static file
-app.use(express.static('public'));
 
 // 토큰 검증 미들웨어
 app.use((req, res, next) => {
@@ -117,37 +117,54 @@ app.use((req, res, next) => {
   }
 
   try {
+    // 쿠키에서 페이로드 정보만 parsing하여 디코딩
     const payload = jwtExam(accessToken);
-    // 위변조된 토큰
-    if (!payload) throw new CustomError('01');
 
-    const payloadSerial = 'serial' in payload ? payload.serial : '';
-    const payloadUserID = 'userid' in payload ? payload.userid : '';
+    // jwtExam함수는 위변조된 토큰일 경우 false를 반환합니다
+    if (!payload) throw new Error('위변조된 토큰');
+    const { serial: payloadSerial, userid: payloadUserID, adress: payloadAdress, agent: payloadAgent, salt: payloadAgentSalt } = payload;
 
     // 페이로드 정보를 읽어오는데 실패
-    if (!payloadSerial || !payloadUserID) throw new CustomError('02');
+    if (!payloadSerial || !payloadUserID || !payloadAdress || !payloadAgent) throw new Error('페이로드 정보를 읽어오는데 실패');
+
+    // ip가 다르면
+    if (payloadAdress !== hashing(req.ip)) {
+      // 모바일(안드로이드 / iphone) 환경
+      if (req.header('User-Agent')?.includes('iPhone') || req.header('User-Agent')?.includes('Android')) {
+        // 접속 기기가 다르면
+        if (payloadAgent !== (hashing(req.header('User-Agent') || '', payloadAgentSalt))) throw new CustomError('접속환경이 다름');
+      } else throw new CustomError('접속환경이 다름');
+    }
 
     req.user = {
       serial: payloadSerial,
       id: payloadUserID,
     }
     next();
-  } catch (error) {
 
-    if (error instanceof CustomError) {
-      if (error.message === '01') console.log('위변조된 토큰');
-      if (error.message === '02') console.log('페이로드 정보를 읽어오는데 실패');
-    } else {
-      console.log(String(error));
+  } catch (err) {
+    let errMessage = '알 수 없는 오류로 로그아웃됩니다';
+
+    res.cookie('accessToken', '', {
+      path: '/',
+      httpOnly: true,
+      maxAge: 0
+    });
+
+    if (err instanceof CustomError) {
+      if (err.message = '접속환경이 다름') errMessage = '접속환경이 달라졌습니다 다시 로그인해 주세요';
+      console.log(err);
+    } else if (err instanceof Error) {
+      if (err.message = '위변조된 토큰') errMessage = '토큰이 변조되었습니다';
+      console.log(err);
     }
 
-    req.user = {
-      id: 'anonymous'
-    }
-    next();
+    res.status(401).send({
+      result: false,
+      error: errMessage
+    })
   }
 });
-
 
 /*
   Routers
@@ -160,7 +177,6 @@ app.use('/', require(path.join(__dirname, '/routes/coin')));
 
 // 자유게시판 관련 라우터
 app.use('/', require(path.join(__dirname, '/routes/board')));
-
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '/public/index.html'));
@@ -194,6 +210,7 @@ app.get('/user/verify', (req, res) => {
       error: errMessage
     });
   }
+
 });
 
 // 유저 프로필 정보
@@ -250,46 +267,45 @@ app.get('/board', (req, res) => {
     page: 'board',
     serial
   }
-  const expDate = new Date();
-  expDate.setMinutes(expDate.getMinutes() + 1)
 
   res.cookie('redirect', cookieObject, {
     path: '/',
-    expires: expDate
+    maxAge: 60000
   });
 
-  res.redirect('http://localhost:3000')
+  res.redirect('/')
 });
 
 app.get('/coin', (req, res) => {
-  const { serial } = req.query;
+  const { market } = req.query;
 
   const cookieObject = {
     page: 'coin',
-    serial
+    market,
+    marketName: typeof market === 'string' ? req?.marketName[market] : undefined
   }
-  const expDate = new Date();
-  expDate.setMinutes(expDate.getMinutes() + 1)
 
   res.cookie('redirect', cookieObject, {
     path: '/',
-    expires: expDate
+    maxAge: 60000
   });
 
-  res.redirect('http://localhost:3000')
+  res.redirect('/')
 });
+
 
 
 //404 Middleware
 app.use((req, res, next) => { // 404 처리 부분
-  console.log('404');
-  res.status(404).send('일치하는 주소가 없습니다!');
+  res.status(404).sendFile(path.join(__dirname, '/public/404.html'));
 });
 
 //Error Middleware
 app.use((err: any, req: Request, res: Response, next: NextFunction) => { // 에러 처리 부분
   console.error(err.stack); // 에러 메시지 표시
-  res.status(500).send('서버 에러!'); // 500 상태 표시 후 에러 메시지 전송
+  // res.send('error')
+  res.redirect('/500')
+  res.status(500).sendFile(path.join(__dirname, '/public/500.html'));
 });
 
 // Create an HTTPS service identical to the HTTP service.

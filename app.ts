@@ -2,8 +2,6 @@ import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
-import methodOverride from 'method-override';
-import axios from 'axios';
 import cookieParser from 'cookie-parser';
 import http from 'http';
 import https from 'https';
@@ -96,8 +94,6 @@ app.use(express.static('public'));
 //body-parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-//method override
-app.use(methodOverride('_method'));
 //cors
 app.use(cors());
 //cookie-parser

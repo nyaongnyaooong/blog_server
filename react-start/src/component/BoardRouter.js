@@ -150,7 +150,7 @@ const BoardPostUpdate = (props) => {
 const BoardPostRead = (props) => {
   const { serial } = props;
   const { setBoardPage, setBoardSerial, setPostData } = props.stateFuncs
-  const { setServerDown } = props.appSetStates;
+  const { setLgnFrmAct, setBgDarkAct, setServerDown } = props.appSetStates;
 
   /*
     States
@@ -228,7 +228,11 @@ const BoardPostRead = (props) => {
         let errorMessage = '알 수 없는 에러입니다'
         if (err.response.data.error) errorMessage = err.response.data.error;
         alert(errorMessage)
-        window.location.href = '/'
+        if (errorMessage === '로그인 정보가 없습니다') {
+          setLgnFrmAct(true);
+          setBgDarkAct(true);
+        } else window.location.href = '/'
+
       }
     }
 

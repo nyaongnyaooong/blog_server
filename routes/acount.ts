@@ -60,12 +60,12 @@ const hashPW: HashPW = (pw, salt = undefined) => {
   }
 }
 
+
 // 로그인 요청
 router.post('/login', async (req, res) => {
   const mySQL = await mySQLPool.getConnection();
 
   try {
-
     const { loginID, loginPW } = req.body;
     if (!loginPW) throw new CustomError('no password');
     if (!loginID) throw new CustomError('no id');
@@ -122,12 +122,15 @@ router.post('/login', async (req, res) => {
 
     // 로그인 성공했음을 response
     res.send({
-      result: id,
+      result: {
+        serial: user_serial,
+        id
+      },
       error: false,
     });
   } catch (err) {
     await mySQL.rollback();
-    
+
     let errMessage = '알 수 없는 오류입니다';
     let statusCode = 400;
     if (err instanceof CustomError) {
@@ -197,14 +200,14 @@ router.post('/register', async (req, res) => {
 
     // DB 입력 실패
     // if (!('affectedRows' in resSQL2) || !resSQL2.affectedRows) throw new CustomError('04');
-      
+
     res.send({
       result: true,
       error: false,
     })
   } catch (err) {
     await mySQL.rollback();
-    
+
     let errMessage = '알 수 없는 오류입니다';
     let statusCode = 400;
     if (err instanceof CustomError) {
@@ -290,12 +293,12 @@ router.patch('/user/password', async (req, res) => {
 
   } catch (err) {
     await mySQL.rollback();
-    
+
     let errMessage = '알 수 없는 오류입니다';
     let statusCode = 400;
     if (err instanceof CustomError) {
-      if(err.message === '로그인 정보가 없습니다') statusCode = 401;
-      if(err.message === '존재하지 않는 유저 정보입니다') statusCode = 401;
+      if (err.message === '로그인 정보가 없습니다') statusCode = 401;
+      if (err.message === '존재하지 않는 유저 정보입니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
@@ -397,11 +400,11 @@ router.delete('/user', async (req, res) => {
     })
   } catch (err) {
     await mySQL.rollback();
-    
+
     let errMessage = '알 수 없는 오류입니다';
     let statusCode = 400;
     if (err instanceof CustomError) {
-      if(err.message === '로그인 정보가 없습니다') statusCode = 401;
+      if (err.message === '로그인 정보가 없습니다') statusCode = 401;
       errMessage = err.message;
     } else {
       console.log(err);
@@ -546,11 +549,11 @@ router.get('/google/redirect', async (req, res) => {
     res.redirect('/');
   } catch (err) {
     await mySQL.rollback();
-    
+
     let errMessage = '알 수 없는 오류입니다';
     let statusCode = 400;
     if (err instanceof CustomError) {
-      if(err.message === '구글에 정보 요청하는데에 있어 문제가 발생했습니다') statusCode = 502;
+      if (err.message === '구글에 정보 요청하는데에 있어 문제가 발생했습니다') statusCode = 502;
       errMessage = err.message;
     } else {
       console.log(err);

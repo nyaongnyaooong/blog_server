@@ -16,6 +16,7 @@ class CustomError extends Error {
 
 // 게시판 새로운 글 포스팅 페이지
 const BoardPostCreate = (props) => {
+  const { userData } = props;
   const { setBoardPage } = props.stateFuncs;
   const { setLgnFrmAct, setBgDarkAct, setServerDown } = props.appSetStates;
   const [postContent, setPostContent] = useState('');
@@ -26,6 +27,7 @@ const BoardPostCreate = (props) => {
     const titleValue = event.target.title.value
 
     try {
+      if (userData.id === 'anonymous') throw new CustomError('로그인 정보가 없습니다')
       // 제목이나 내용이 공백일 경우
       if (!titleValue.replace(/\s/g, '').length) throw new CustomError('제목을 입력해주세요')
       if (!postContent.replace(/\s/g, '').length) throw new CustomError('내용을 입력해주세요')
@@ -47,7 +49,8 @@ const BoardPostCreate = (props) => {
       else {
         if (err.message === 'Request failed with status code 500') setServerDown(true)
         else {
-          const errorMessage = err.response.data.error;
+          let errorMessage = '알 수 없는 에러입니다'
+          if (err.response.data.error) errorMessage = err.response.data.error;
           alert(errorMessage);
           if (errorMessage === '로그인 정보가 없습니다') {
             setLgnFrmAct(true);
@@ -63,7 +66,7 @@ const BoardPostCreate = (props) => {
     <div className="content_box ani_fadeIn" id="board">
       <form onSubmit={postBoard}>
         <div className='board_post_title'>
-          <input type="text" placeholder='제목' name='title' />
+          <input type="text" placeholder='제목을 입력해주세요' name='title' />
         </div>
 
         <div className='board_post_content'>
@@ -113,7 +116,8 @@ const BoardPostUpdate = (props) => {
       else {
         if (err.message === 'Request failed with status code 500') setServerDown(true)
         else {
-          const errorMessage = err.response.data.error;
+          let errorMessage = '알 수 없는 에러입니다'
+          if (err.response.data.error) errorMessage = err.response.data.error;
           alert(errorMessage)
           window.location.href = '/'
         }
@@ -148,9 +152,9 @@ const BoardPostUpdate = (props) => {
 
 // 게시판 글 읽는 페이지
 const BoardPostRead = (props) => {
-  const { serial } = props;
+  const { serial, userData } = props;
   const { setBoardPage, setBoardSerial, setPostData } = props.stateFuncs
-  const { setLgnFrmAct, setBgDarkAct, setServerDown } = props.appSetStates;
+  const { setLgnFrmAct, setBgDarkAct, setServerDown, setUserData } = props.appSetStates;
 
   /*
     States
@@ -161,7 +165,7 @@ const BoardPostRead = (props) => {
   // 댓글 데이터 (객체)
   const [commentData, setCommentData] = useState(null);
   // 현재 접속 유저 정보 (객체)
-  const [userData, setUserData] = useState(null);
+  // const [userData, setUserData] = useState(null);
   // 대댓글 창 state
   const [replyActive, setReplyActive] = useState([]);
 
@@ -194,7 +198,14 @@ const BoardPostRead = (props) => {
 
   // 댓글 추가 요청 함수
   const addComment = async (reqContent, reply = 0) => {
+    if (userData?.id === 'anonymous') {
+      alert('로그인 정보가 없습니다');
+      setLgnFrmAct(true);
+      setBgDarkAct(true);
+      return
+    }
     try {
+      // if (userData?.id === 'anonymous') throw new CustomError('로그인 정보가 없습니다')
       if (!reqContent) throw new CustomError('댓글을 입력해주세요')
       const response = await axios.request({
         method: 'post',
@@ -223,17 +234,19 @@ const BoardPostRead = (props) => {
       setCommentData(newCommentData);
 
     } catch (err) {
-      if (err instanceof CustomError) alert(err.message)
-      else {
-        let errorMessage = '알 수 없는 에러입니다'
-        if (err.response.data.error) errorMessage = err.response.data.error;
-        alert(errorMessage)
-        if (errorMessage === '로그인 정보가 없습니다') {
-          setLgnFrmAct(true);
-          setBgDarkAct(true);
-        } else window.location.href = '/'
+      console.log(err)
+      let errorMessage = '알 수 없는 에러입니다'
 
+      if (err instanceof CustomError) errorMessage = err.message;
+      else if (err?.response?.data.error) errorMessage = err.response.data.error
+      else if (err.message === 'Request failed with status code 500') setServerDown(true)
+
+      alert(errorMessage);
+      if (errorMessage === '로그인 정보가 없습니다') {
+        setLgnFrmAct(true);
+        setBgDarkAct(true);
       }
+      // else window.location.href = '/';
     }
 
   };
@@ -372,7 +385,8 @@ const BoardPostRead = (props) => {
         else {
           if (err.message === 'Request failed with status code 500') setServerDown(true)
           else {
-            const errorMessage = err.response.data.error;
+            let errorMessage = '알 수 없는 에러입니다'
+            if (err.response.data.error) errorMessage = err.response.data.error;
             alert(errorMessage)
             window.location.href = '/'
           }
@@ -537,7 +551,7 @@ const BoardPostRead = (props) => {
                     <div><span>{reply_dateKST_String}</span></div>
                   </div>
                   {
-                    userData.serial === reply_user_serial ? (
+                    userData.serial === reply_user_serial || userData.id === 'admin' ? (
                       <div className='comment-item-button'>
                         <ButtonPatch index={index} />
 
@@ -764,7 +778,8 @@ const BoardHome = (props) => {
         else {
           if (err.message === 'Request failed with status code 500') setServerDown(true)
           else {
-            const errorMessage = err.response.data.error;
+            let errorMessage = '알 수 없는 에러입니다'
+            if (err.response.data.error) errorMessage = err.response.data.error;
             alert(errorMessage)
             window.location.href = '/'
           }
@@ -803,7 +818,7 @@ const BoardHome = (props) => {
 
 // 게시판 메인 컴포넌트
 const Board = (props) => {
-  const { appSetStates, componentSerial: boardSerial, componentPage: boardPage } = props;
+  const { appSetStates, componentSerial: boardSerial, componentPage: boardPage, userData } = props;
   const { setComponentPage: setBoardPage, setComponentSerial: setBoardSerial } = appSetStates
 
   const [postData, setPostData] = useState(null);
@@ -814,8 +829,8 @@ const Board = (props) => {
     setPostData,
   }
   if (boardPage === 'home') return <BoardHome stateFuncs={stateFuncs} appSetStates={appSetStates} />
-  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={boardSerial} stateFuncs={stateFuncs} appSetStates={appSetStates} />
-  if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} appSetStates={appSetStates} />
+  if (boardPage === 'read') return <BoardPostRead postData={postData} serial={boardSerial} stateFuncs={stateFuncs} appSetStates={appSetStates} userData={userData} />
+  if (boardPage === 'create') return <BoardPostCreate stateFuncs={stateFuncs} appSetStates={appSetStates} userData={userData} />
   if (boardPage === 'update') return <BoardPostUpdate postData={postData} serial={boardSerial} stateFuncs={stateFuncs} appSetStates={appSetStates} />
   return <Loading2 />
 }

@@ -410,10 +410,10 @@ const MyPage = (props) => {
 }
 
 const Content = (props) => {
-  const { page, componentSerial, componentPage, appSetStates } = props;
+  const { page, componentSerial, componentPage, appSetStates, userData } = props;
 
-  if (page === 1) return <Coin appSetStates={appSetStates} componentSerial={componentSerial} componentPage={componentPage} />
-  if (page === 2) return <Board appSetStates={appSetStates} componentSerial={componentSerial} componentPage={componentPage} />
+  if (page === 1) return <Coin appSetStates={appSetStates} componentSerial={componentSerial} componentPage={componentPage} userData={userData}/>
+  if (page === 2) return <Board appSetStates={appSetStates} componentSerial={componentSerial} componentPage={componentPage} userData={userData}/>
   if (page === 3) return <MyPage appSetStates={appSetStates} />
 
   return <Home />
@@ -443,15 +443,6 @@ const App = () => {
     removeCookie('redirect')
 
   }
-
-
-
-  // let nowPageState = 0;
-  // const urlPath = window.location.pathname;
-  // const comparePath = urlPath.split('/')
-  // navBtnList.forEach((e, i) => {
-  //   if (comparePath[1] === e.toLowerCase()) nowPageState = i;
-  // });
 
   const [lgnFrmAct, setLgnFrmAct] = useState(false);
   const [regFrmAct, setRegFrmAct] = useState(false);
@@ -487,7 +478,7 @@ const App = () => {
       try {
         const response = await axios.get('/user/verify');
 
-        setUserData(response.data.result.id);
+        setUserData(response.data.result);
       } catch (err) {
         if (err instanceof CustomError) alert(err.message)
         else {
@@ -546,7 +537,7 @@ const App = () => {
 
               {/* <!-- Content --> */}
 
-              <Content page={page} componentSerial={componentSerial} componentPage={componentPage} appSetStates={stateFunctions}></Content>
+              <Content page={page} componentSerial={componentSerial} componentPage={componentPage} appSetStates={stateFunctions} userData={userData}></Content>
 
               {/* <!-- /Content --> */}
 

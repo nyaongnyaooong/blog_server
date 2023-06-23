@@ -243,9 +243,9 @@ const DetailPage = (props) => {
   // stateFuncs: 뒤로 돌아가기용
   const currentMarketCode = props.coin;
 
-  const { marketName, stateFuncs, refresh, appSetStates } = props;
+  const { marketName, stateFuncs, refresh, appSetStates, userData } = props;
   const { setCoinPage, setAutoRefresh } = stateFuncs;
-  const { setLgnFrmAct, setBgDarkAct, setServerDown } = appSetStates;
+  const { setLgnFrmAct, setBgDarkAct, setServerDown, setUserData } = appSetStates;
 
   const [series, setSeries] = useState(null);
   const [options, setOptions] = useState(null);
@@ -291,29 +291,32 @@ const DetailPage = (props) => {
 
   //유저의 코인 정보를 불러옴
   const getUserCoinData = async () => {
-    const response = await axios.request({
-      method: 'get',
-      url: '/user/coin',
-      params: {
-        market: currentMarketCode,
+    try {
+      const response = await axios.request({
+        method: 'get',
+        url: '/user/coin',
+        params: {
+          market: currentMarketCode,
+        }
+      });
+
+      if (response.data.result) {
+        const { coin: userAsset, history } = response.data.result;
+
+        const marketAssetIdx = userAsset.findIndex((e) => {
+          return e.market === currentMarketCode;
+        })
+        const marketAsset = userAsset[marketAssetIdx];
+
+        const newState = marketAsset ?
+          { amount: marketAsset.amount, price: marketAsset.price } :
+          { amount: 0, price: 0 }
+
+        setUserCoinData(newState);
+        setUserTradeHistory(history);
       }
-    });
+    } catch (err) {
 
-    if (response.data.result) {
-      const { coin: userAsset, history } = response.data.result;
-
-      const marketAssetIdx = userAsset.findIndex((e) => {
-        return e.market === currentMarketCode;
-      })
-      const marketAsset = userAsset[marketAssetIdx];
-
-
-      const newState = marketAsset ?
-        { amount: marketAsset.amount, price: marketAsset.price } :
-        { amount: 0, price: 0 }
-
-      setUserCoinData(newState);
-      setUserTradeHistory(history);
     }
   }
 
@@ -407,7 +410,8 @@ const DetailPage = (props) => {
         else {
           if (err.message === 'Request failed with status code 500') setServerDown(true)
           else {
-            const errorMessage = err.response.data.error;
+            let errorMessage = '알 수 없는 에러입니다'
+            if (err.response.data.error) errorMessage = err.response.data.error;
             alert(errorMessage)
             window.location.href = '/'
           }
@@ -434,20 +438,22 @@ const DetailPage = (props) => {
   // 코인 거래 요청 함수
   const reqTrade = async (event, tradeType) => {
     event.preventDefault();
-    setInputs({ buyAmount: '', sellAmount: '' });
 
     try {
+      if (userData.id === 'anonymous') throw new CustomError('로그인 정보가 없습니다');
       if (coolTime) throw new CustomError('연속으로 요청할 수 없습니다.');
+      setInputs({ buyAmount: '', sellAmount: '' });
       setCoolTime(true);
 
       let inputValue;
-      if (tradeType === 'buy') {
-        inputValue = Number(event.target.buyAmount.value);
-      } else if (tradeType === 'sell') {
-        inputValue = Number(event.target.sellAmount.value);
-      }
+      if (tradeType === 'buy') inputValue = event.target.buyAmount.value;
+      if (tradeType === 'sell') inputValue = event.target.sellAmount.value;
+      if (inputValue === '') throw new CustomError('수량을 입력해주세요');
+      if (/^[0-9]*$/.test(inputValue)) throw new CustomError('숫자만 입력해주세요');
 
+      inputValue = Number(inputValue);
       if (isNaN(inputValue)) throw new CustomError('숫자만 입력해주세요');
+      if (inputValue <= 0) throw new CustomError('0보다 큰 숫자를 입력해 주세요');
 
       const response = await axios.request({
         method: 'post',
@@ -461,19 +467,19 @@ const DetailPage = (props) => {
 
       getUserCoinData();
     } catch (err) {
-      if (err instanceof CustomError) alert(err.message)
-      else {
-        if (err.message === 'Request failed with status code 500') setServerDown(true)
-        else {
-          const errorMessage = err.response.data.error;
-          alert(errorMessage);
-  
-          if (errorMessage === '로그인 정보가 없습니다') {
-            setLgnFrmAct(true);
-            setBgDarkAct(true);
-          } else window.location.href = '/';
-        }
+      let errorMessage = '알 수 없는 에러입니다'
+
+      if (err instanceof CustomError) errorMessage = err.message;
+      else if (err?.response?.data.error) errorMessage = err.response.data.error;
+      else if (err.message === 'Request failed with status code 500') setServerDown(true)
+
+      alert(errorMessage);
+      if (errorMessage === '로그인 정보가 없습니다') {
+        setLgnFrmAct(true);
+        setBgDarkAct(true);
       }
+      if (!(err instanceof CustomError)) window.location.href = '/';
+
     } finally {
       setCoolTime(false);
     }
@@ -507,9 +513,9 @@ const DetailPage = (props) => {
             <tr key={i}>
               <td>{i + 1}</td>
               <td>{e.trading ? '구매' : '판매'}</td>
-              <td>{e.amount}</td>
-              <td>{e.price}</td>
-              <td>{e.amount * e.price}</td>
+              <td>{e.amount.toLocaleString('ko-KR')}</td>
+              <td>{e.price.toLocaleString('ko-KR')}</td>
+              <td>{(e.amount * e.price).toLocaleString('ko-KR')}</td>
               <td>{dateKST_String}</td>
             </tr>
           )
@@ -575,7 +581,7 @@ const DetailPage = (props) => {
                 <span>평단가</span>
               </div>
               <div className='input-area'>
-                <span>{userCoinData.price}</span>
+                <span>{userCoinData.price.toLocaleString('ko-KR')}</span>
               </div>
             </div>
             <div className='desc-area'>
@@ -623,7 +629,7 @@ const DetailPage = (props) => {
                 <span>현재가</span>
               </div>
               <div className='input-area'>
-                <span>{ticker.trade_price}</span>
+                <span>{ticker.trade_price.toLocaleString('ko-KR')}</span>
               </div>
             </div>
 
@@ -665,7 +671,7 @@ const DetailPage = (props) => {
 // 코인 페이지
 // coinPage 값에 따라 보여주는 페이지가 달라짐
 const Coin = (props) => {
-  const { appSetStates, componentSerial: marketName, componentPage: coinPage } = props;
+  const { appSetStates, componentSerial: marketName, componentPage: coinPage, userData } = props;
   const { setComponentSerial: setMarketName, setComponentPage: setCoinPage } = appSetStates;
 
   // const [coinPage, setCoinPage] = useState('home');
@@ -682,7 +688,7 @@ const Coin = (props) => {
 
 
     return (
-      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} appSetStates={appSetStates} refresh={autoRefresh} />
+      <DetailPage coin={coinPage} marketName={marketName} stateFuncs={stateFuncs} appSetStates={appSetStates} refresh={autoRefresh} userData={userData} />
     );
   } else {
     return (

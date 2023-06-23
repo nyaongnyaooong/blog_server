@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import http from 'http';
 import https from 'https';
 import path from 'path';
+import helmet from 'helmet';
 import fs from 'fs';
 
 import { createToken, createSignature, hashing } from './modules/jwt';
@@ -89,6 +90,8 @@ app.use((req, res, next) => {
   else res.redirect("https://" + req.headers.host + req.url);
 });
 
+//helmet
+app.use(helmet());
 //static file
 app.use(express.static('public'));
 //body-parser
@@ -98,6 +101,7 @@ app.use(express.json());
 app.use(cors());
 //cookie-parser
 app.use(cookieParser(process.env.COOKIE_SECRET));
+
 //morgan
 app.use(morgan('dev'));
 

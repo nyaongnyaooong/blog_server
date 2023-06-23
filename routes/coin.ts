@@ -1,10 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import morgan from 'morgan';
-import methodOverride from 'method-override';
 import axios from 'axios';
-import cookieParser from 'cookie-parser';
 
 /*
   Types
@@ -209,10 +204,12 @@ router.post('/user/coin/trade', async (req, res) => {
 
   try {
     const { request: reqType, market: reqMarketCode } = req.body;
+    if (/^[0-9]*$/.test(req.body.amount)) throw new CustomError('숫자만 입력해주세요');
     const reqAmount = Number(req.body.amount);
 
     // 요청값이 없거나 타입에 문제가 있음
-    if (typeof reqType !== 'string' || typeof reqMarketCode !== 'string' || typeof reqAmount !== 'number') throw new Error('01');
+    if (typeof reqType !== 'string' || typeof reqMarketCode !== 'string' || typeof reqAmount !== 'number') throw new CustomError('요청 값을 확인해주세요');
+    if (reqAmount === 0) throw new CustomError('수량을 입력해 주세요');
 
     const { serial: userSerial, id: userID } = req.user;
     // 유저 검증 미들웨어 문제
@@ -261,7 +258,6 @@ router.post('/user/coin/trade', async (req, res) => {
     // 유저의 원화 자산
     const krwAsset: { market: string, price: number, amount: number } = { market: 'KRW', price: 1, amount: 0 };
     if (krwIndex > -1) krwAsset.amount = resSQL1[krwIndex].amount || 0;
-
 
     if (reqType === 'buy') {  // 구매요청이면
       // 요청한 코인 수량 및 평단가 반영

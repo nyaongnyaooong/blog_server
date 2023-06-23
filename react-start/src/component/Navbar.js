@@ -48,12 +48,14 @@ const Nav = (props) => {
         <div className="nav_r_section">
           <button className="btn_login_section" onClick={() => {
             setPage(btnList.length - 1);
-          }}>{userData}</button>
+          }}>{userData.id}</button>
           <button className="btn_login_section" onClick={async () => {
             // document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             await axios.get('/logout');
 
-            setUserData('anonymous');
+            setUserData({
+              id: 'anonymous'
+            });
           }}>LogOut</button>
         </div>
       )
@@ -74,7 +76,7 @@ const Nav = (props) => {
       )
     }
 
-    return userData !== 'anonymous' ? <FormUser /> : <FormAnonymous />
+    return userData.id !== 'anonymous' ? <FormUser /> : <FormAnonymous />
   };
 
   return (

@@ -41,7 +41,7 @@
       }
     }
 
-    
+
   }
 
   .board_title {
@@ -81,14 +81,16 @@
 
 
 .board_post_title {
-  margin-left: 25px;
-  margin-right: 25px;
+  margin-left: 23px;
+  margin-right: 23px;
   margin-top: 50px;
-  margin-bottom: 10px;
-
+  margin-bottom: 25px;
+  padding-top: 8px;
+  padding-bottom: 8px;
   flex: 1;
   text-align: center;
-  padding-bottom: 15px;
+  border-bottom: 1px solid steelblue;
+  // background-color: white;
 
   input {
     width: 100%;
@@ -120,12 +122,12 @@
 
 
 .board_post_complete {
-  width: 90%;
-  margin: 0 auto;
+  width: 100%;
   align-items: center;
   text-align: right;
 
-  padding: 5px;
+  padding-left: 23px;
+  padding-right: 23px;
 }
 
 .board_post_complete button {
@@ -240,9 +242,11 @@
   padding: 5px;
   font-size: 12px;
   user-select: all;
+
   &:hover {
     color: steelblue;
   }
+
   /* color: black; */
   /* background-color: #7a8695; */
 }

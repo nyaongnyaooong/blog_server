@@ -94,7 +94,13 @@ const LogInForm = (props) => {
       if (!inputID) throw new CustomError('아이디를 입력해주세요');
       if (!inputPW) throw new CustomError('패스워드를 입력해주세요');
 
-      const response = await axios.post('/login', reqObject);
+      const response = await axios.request({
+        method: 'post',
+        url: '/login',
+        data: {
+          ...reqObject
+        },
+      });
 
       setLgnFrmAct(false);
       setBgDarkAct(false);
@@ -102,13 +108,15 @@ const LogInForm = (props) => {
       window.location.href = '/';
 
     } catch (err) {
+      let errorMessage = '알 수 없는 에러입니다'
       if (err instanceof CustomError) {
         setMessage(err.message);
         setTimeout(() => {
           setMessage('');
         }, 1500)
       } else {
-        setMessage(err.response.data.error);
+        if (err?.response?.data.error) errorMessage = err.response.data.error;
+        setMessage(errorMessage);
         setTimeout(() => {
           setMessage('');
         }, 1500)
@@ -223,21 +231,32 @@ const RegisterForm = (props) => {
       regPw
     }
     try {
-      if (!/^[0-9 | a-z]+$/g.test(regId)) throw new Error('영문자 혹은 숫자의 조합만 아이디로 사용할 수 있습니다');
-      // if (/[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]|\s/g.test(regId)) throw new Error('입력할 수 없는 문자가 섞여있습니다');
-      if (regId.includes('admin') || regId.includes('google') || regId.includes('anonymous')) throw new Error('아이디로 사용할 수 없는 문자가 섞여있습니다');
-      if (regId.length > 13) throw new Error('아이디는 12글자 이하만 사용할 수 있습니다');
-      if (regId.length < 4) throw new Error('아이디는 4글자 이상만 사용할 수 있습니다');
-      if (regPw.length < 8) throw new Error('패스워드는 8자 이상 입력해주세요');
-      if (regPw !== regPwAgain) throw new Error('패스워드 확인문자가 다릅니다');
-      if (!regId) throw new Error('아이디를 입력해주세요');
-      if (!regPw) throw new Error('패스워드를 입력해주세요');
+      if (!regId) throw new CustomError('아이디를 입력해주세요');
+      if (!regPw) throw new CustomError('패스워드를 입력해주세요');
+      if (regPw !== regPwAgain) throw new CustomError('패스워드 확인문자가 다릅니다');
+      if (!/^[0-9 | a-z]+$/g.test(regId)) throw new CustomError('영문자 혹은 숫자의 조합만 아이디로 사용할 수 있습니다');
+      if (regId.includes('admin')) throw new CustomError('아이디로 사용할 수 없는 문자가 섞여있습니다(admin)');
+      if (regId.includes('google')) throw new CustomError('아이디로 사용할 수 없는 문자가 섞여있습니다(google)');
+      if (regId.includes('anonymous')) throw new CustomError('아이디로 사용할 수 없는 문자가 섞여있습니다(anonymous)');
+      if (regId.length > 13) throw new CustomError('아이디는 12글자 이하만 사용할 수 있습니다');
+      if (regId.length < 4) throw new CustomError('아이디는 4글자 이상만 사용할 수 있습니다');
+      if (regPw.length < 8) throw new CustomError('패스워드는 8자 이상 입력해주세요');
 
-      const response = await axios.post('/register', reqObject);
+      const response = await axios.request({
+        method: 'post',
+        url: '/register',
+        data: {
+          reqObject
+        },
+      });
 
       window.location.href = window.location.origin;
     } catch (err) {
-      setMessage(err.response.data.error);
+      let errMessage = '알 수 없는 오류입니다'
+      if (err instanceof CustomError) errMessage = err.message;
+      else if (err?.response?.data.error) errMessage = err.response.data.error;
+
+      setMessage(errMessage);
       setTimeout(() => {
         setMessage('');
       }, 1500)

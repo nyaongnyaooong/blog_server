@@ -24,10 +24,10 @@ const app = express();
 // dotenv
 dotenv.config();
 
-const options = {
-  key: fs.readFileSync('./key/nyaong.myddns.me-key.pem'),
-  cert: fs.readFileSync('./key/nyaong.myddns.me-crt.pem')
-};
+// const options = {
+//   key: fs.readFileSync('./key/nyaong.myddns.me-key.pem'),
+//   cert: fs.readFileSync('./key/nyaong.myddns.me-crt.pem')
+// };
 
 app.set('httpPort', process.env.HTTP_PORT || 80);
 app.set('httpsPort', process.env.HTTPS_PORT || 443);
@@ -85,13 +85,21 @@ class CustomError extends Error {
 */
 
 // https redirection
-app.use((req, res, next) => {
-  if (req.secure) next();
-  else res.redirect("https://" + req.headers.host + req.url);
-});
+// app.use((req, res, next) => {
+//   if (req.secure) next();
+//   else res.redirect("https://" + req.headers.host + req.url);
+// });
 
 //helmet
 app.use(helmet());
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.upbit.com"],
+    },
+  })
+);
 //static file
 app.use(express.static('public'));
 //body-parser
@@ -309,9 +317,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => { // ì—ë
 });
 
 // Create an HTTPS service identical to the HTTP service.
-https.createServer(options, app).listen(app.get('httpsPort'), () => {
-  console.log('server is running on ' + app.get('httpsPort'));
-});
+// https.createServer(options, app).listen(app.get('httpsPort'), () => {
+//   console.log('server is running on ' + app.get('httpsPort'));
+// });
 
 // Create an HTTP service.
 http.createServer(app).listen(app.get('httpPort'), () => {

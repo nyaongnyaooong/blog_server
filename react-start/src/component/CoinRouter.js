@@ -581,7 +581,7 @@ const DetailPage = (props) => {
                 <span>평단가</span>
               </div>
               <div className='input-area'>
-                <span>{userCoinData.price.toLocaleString('ko-KR')}</span>
+                <span>{userCoinData.price? userCoinData.price.toLocaleString('ko-KR') : 0}</span>
               </div>
             </div>
             <div className='desc-area'>

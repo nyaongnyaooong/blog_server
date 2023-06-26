@@ -1,7 +1,8 @@
 # 개인 프로젝트
 코인 모의 거래 및 자유 게시판 입니다<br />
 URL : https://nyaong.myddns.me/
-
+테스트아이디 : id0001
+패스워드 : qweqwe123
 
 ---
 

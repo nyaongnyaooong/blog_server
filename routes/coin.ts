@@ -204,7 +204,7 @@ router.post('/user/coin/trade', async (req, res) => {
 
   try {
     const { request: reqType, market: reqMarketCode } = req.body;
-    if (/^[0-9]*$/.test(req.body.amount)) throw new CustomError('숫자만 입력해주세요');
+    if (!(/^[0-9]*$/.test(req.body.amount))) throw new CustomError('숫자만 입력해주세요');
     const reqAmount = Number(req.body.amount);
 
     // 요청값이 없거나 타입에 문제가 있음

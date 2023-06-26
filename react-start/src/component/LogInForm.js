@@ -226,10 +226,6 @@ const RegisterForm = (props) => {
       setLoginActive(true);
     }, 1600)
 
-    const reqObject = {
-      regId,
-      regPw
-    }
     try {
       if (!regId) throw new CustomError('아이디를 입력해주세요');
       if (!regPw) throw new CustomError('패스워드를 입력해주세요');
@@ -246,7 +242,8 @@ const RegisterForm = (props) => {
         method: 'post',
         url: '/register',
         data: {
-          reqObject
+          regId,
+          regPw
         },
       });
 

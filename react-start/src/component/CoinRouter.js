@@ -449,7 +449,7 @@ const DetailPage = (props) => {
       if (tradeType === 'buy') inputValue = event.target.buyAmount.value;
       if (tradeType === 'sell') inputValue = event.target.sellAmount.value;
       if (inputValue === '') throw new CustomError('수량을 입력해주세요');
-      if (/^[0-9]*$/.test(inputValue)) throw new CustomError('숫자만 입력해주세요');
+      if (!(/^[0-9]*$/.test(inputValue))) throw new CustomError('숫자만 입력해주세요');
 
       inputValue = Number(inputValue);
       if (isNaN(inputValue)) throw new CustomError('숫자만 입력해주세요');
@@ -506,7 +506,7 @@ const DetailPage = (props) => {
       const Tr = () => {
         return userTradeHistory.map((e, i) => {
           const dateKST = new Date(e.date);
-          dateKST.setHours(dateKST.getHours());
+          dateKST.setHours(dateKST.getHours() + 9);
           const dateKST_String = dateKST.toLocaleString();
 
           return (
@@ -581,7 +581,7 @@ const DetailPage = (props) => {
                 <span>평단가</span>
               </div>
               <div className='input-area'>
-                <span>{userCoinData.price? userCoinData.price.toLocaleString('ko-KR') : 0}</span>
+                <span>{userCoinData.price ? userCoinData.price.toLocaleString('ko-KR') : 0}</span>
               </div>
             </div>
             <div className='desc-area'>

@@ -24,10 +24,7 @@ const app = express();
 // dotenv
 dotenv.config();
 
-// const options = {
-//   key: fs.readFileSync('./key/nyaong.myddns.me-key.pem'),
-//   cert: fs.readFileSync('./key/nyaong.myddns.me-crt.pem')
-// };
+
 
 app.set('httpPort', process.env.HTTP_PORT || 80);
 app.set('httpsPort', process.env.HTTPS_PORT || 443);
@@ -316,12 +313,17 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => { // ì—ë
   res.status(500).sendFile(path.join(__dirname, '/public/500.html'));
 });
 
-// Create an HTTPS service identical to the HTTP service.
-// https.createServer(options, app).listen(app.get('httpsPort'), () => {
-//   console.log('server is running on ' + app.get('httpsPort'));
-// });
-
 // Create an HTTP service.
 http.createServer(app).listen(app.get('httpPort'), () => {
   console.log('server is running on ' + app.get('httpPort'));
 });
+
+// const options = {
+//   key: fs.readFileSync('./key/nyaong.myddns.me-key.pem'),
+//   cert: fs.readFileSync('./key/nyaong.myddns.me-crt.pem')
+// };
+
+// Create an HTTPS service identical to the HTTP service.
+// https.createServer(options, app).listen(app.get('httpsPort'), () => {
+//   console.log('server is running on ' + app.get('httpsPort'));
+// });

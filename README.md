@@ -63,7 +63,7 @@ URL : https://nyaong.myddns.me/
 </div>
 
 ### 서버 구성도
-<img src='https://github.com/nyaongnyaooong/coin_trade/assets/68260365/eb9d63bc-21cb-4701-a2dd-7d75d59c7931' width="600px" />
+<img src='https://github.com/nyaongnyaooong/coin_trade/assets/68260365/d221d298-fcc9-421e-b994-85893f65569b' width="600px" />
 
 
 ### ERD 설계도

@@ -506,7 +506,7 @@ const DetailPage = (props) => {
       const Tr = () => {
         return userTradeHistory.map((e, i) => {
           const dateKST = new Date(e.date);
-          dateKST.setHours(dateKST.getHours() + 9);
+          // dateKST.setHours(dateKST.getHours() + 9);
           const dateKST_String = dateKST.toLocaleString();
 
           return (
